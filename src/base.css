@@ -1,0 +1,5 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { background: #eef0f4; }
+button { font: inherit; }
+img { max-width: 100%; }
