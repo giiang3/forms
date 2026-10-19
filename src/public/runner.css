@@ -309,3 +309,5 @@
   .fr-nav { right: 12px; bottom: 12px; }
   .fr-preview-tag { display: none; }
 }
+.fr-protocol { margin: 18px 0 0; font-size: 16px; color: var(--q-60); }
+.fr-protocol b { color: var(--q); font-size: 20px; letter-spacing: .04em; margin-left: 6px; font-variant-numeric: tabular-nums; }

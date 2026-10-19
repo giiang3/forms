@@ -212,6 +212,7 @@ export function newEnding() {
     buttonUrl: '',
     redirectUrl: '',
     calendar: { enabled: false, title: '', date: '', start: '09:00', end: '10:00', allDay: false, location: '', details: '' },
+    receipt: { enabled: true },
   }
 }
 

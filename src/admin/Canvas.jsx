@@ -152,10 +152,20 @@ export default function Canvas({ schema, selected, field, parent, ending, onPatc
         <AutoText className="ad-edit fr-welcome-title" value={ending.title} onChange={(v) => onEnding({ title: v })} placeholder="Título da tela final" />
         <AutoText className="ad-edit fr-q-desc ad-edit-desc" value={ending.description} onChange={(v) => onEnding({ description: v })} placeholder="Descrição (opcional)" />
         <RecallNote text={`${ending.title || ''} ${ending.description || ''}`} schema={schema} />
-        {(ending.calendar?.enabled || ending.buttonText) && (
+        {ending.receipt?.enabled !== false && (
+          <p className="fr-protocol">
+            Protocolo <b>XXXX-XXXX</b>
+          </p>
+        )}
+        {(ending.calendar?.enabled || ending.buttonText || ending.receipt?.enabled !== false) && (
           <div className="fr-actions fr-actions-end">
-            {ending.calendar?.enabled && (
+            {ending.receipt?.enabled !== false && (
               <span className="fr-btn">
+                <Icon name="download" size={16} /> Baixar comprovante
+              </span>
+            )}
+            {ending.calendar?.enabled && (
+              <span className={`fr-btn ${ending.receipt?.enabled !== false ? 'fr-btn-ghost' : ''}`}>
                 <Icon name="calendar" size={16} /> Adicionar ao Google Agenda
               </span>
             )}

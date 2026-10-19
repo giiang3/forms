@@ -12,7 +12,7 @@ async function fetchAll(formId) {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('responses')
-      .select('id, answers, status, started_at, submitted_at, duration_ms')
+      .select('id, protocol, answers, status, started_at, submitted_at, duration_ms')
       .eq('form_id', formId)
       .order('submitted_at', { ascending: false })
       .range(from, from + PAGE - 1)
@@ -313,7 +313,9 @@ export default function Results() {
     const base = status === 'all' ? rows || [] : status === 'partial' ? partials : completed
     if (!q.trim()) return base
     const s = q.toLowerCase()
-    return base.filter((r) => fields.some((f) => formatAnswer(r.answers?.[f.id], f).toLowerCase().includes(s)))
+    return base.filter(
+      (r) => (r.protocol || '').toLowerCase().includes(s.replace(/\s/g, '')) || fields.some((f) => formatAnswer(r.answers?.[f.id], f).toLowerCase().includes(s)),
+    )
   }, [rows, completed, partials, status, q, fields])
 
   const fileBase = () =>
@@ -331,6 +333,7 @@ export default function Results() {
           return { value: new Date(d.getTime() - d.getTimezoneOffset() * 60000), format: 'dd/mm/yyyy hh:mm' }
         },
       },
+      { header: 'Protocolo', width: 12, get: (r) => r.protocol || null },
       { header: 'Situação', width: 11, get: (r) => (r.status === 'completed' ? 'Completa' : 'Parcial') },
       { header: 'Tempo (segundos)', width: 10, get: (r) => (r.duration_ms == null ? null : Math.round(r.duration_ms / 1000)) },
     ]
@@ -490,7 +493,7 @@ export default function Results() {
         {tab === 'list' && (
           <>
             <div className="ad-list-tools">
-              <input className="ad-input" placeholder="Buscar nas respostas" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="ad-input" placeholder="Buscar nas respostas ou protocolo" value={q} onChange={(e) => setQ(e.target.value)} />
               <select className="ad-input ad-select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filtrar">
                 <option value="completed">Completas ({completed.length})</option>
                 <option value="partial">Parciais ({partials.length})</option>
@@ -513,6 +516,7 @@ export default function Results() {
                   <thead>
                     <tr>
                       <th>Enviada em</th>
+                      <th>Protocolo</th>
                       <th>Tempo</th>
                       {fields.map((f) => (
                         <th key={f.id}>{f.title || 'Sem título'}</th>
@@ -526,6 +530,7 @@ export default function Results() {
                           {fmtDateTime(r.submitted_at)}
                           {r.status === 'partial' && <span className="ad-status is-draft">Parcial</span>}
                         </td>
+                        <td className="nowrap ad-mono">{r.protocol}</td>
                         <td className="nowrap ad-muted">{fmtDuration(r.duration_ms)}</td>
                         {fields.map((f) => (
                           <td key={f.id}>{f.type === 'signature' && r.answers?.[f.id] ? <img className="ad-sig-thumb" src={r.answers[f.id]} alt="Assinatura" /> : formatAnswer(r.answers?.[f.id], f)}</td>
@@ -543,7 +548,7 @@ export default function Results() {
       {open && (
         <Modal title="Resposta" onClose={() => setOpen(null)}>
           <p className="ad-muted">
-            {fmtDateTime(open.submitted_at)} · {fmtDuration(open.duration_ms)} · {open.status === 'completed' ? 'Completa' : 'Parcial'}
+            Protocolo <b className="ad-mono">{open.protocol}</b>, enviada em {fmtDateTime(open.submitted_at)}, em {fmtDuration(open.duration_ms)} ({open.status === 'completed' ? 'completa' : 'parcial'})
           </p>
           <dl className="ad-detail">
             {fields.map((f) => (

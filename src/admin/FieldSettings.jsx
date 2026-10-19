@@ -403,6 +403,14 @@ export function EndingSettings({ ending, schema, onChange, onRemove, canRemove }
   const fields = answerableFields(schema.fields)
   return (
     <div className="ad-right-body">
+      <Section title="Comprovante" defaultOpen>
+        <Toggle
+          label="Botão “Baixar comprovante”"
+          hint="Mostra o protocolo do envio e gera um PDF com data, hora e respostas. Documentos aparecem parcialmente ocultos."
+          checked={ending.receipt?.enabled !== false}
+          onChange={(v) => onChange({ receipt: { ...(ending.receipt || {}), enabled: v } })}
+        />
+      </Section>
       <Section title="Botão Google Agenda" defaultOpen>
         <Toggle label="Mostrar botão" hint="A pessoa adiciona o evento à própria agenda com um clique." checked={cal.enabled} onChange={(v) => setCal({ enabled: v, title: cal.title || '' })} />
         {cal.enabled && (

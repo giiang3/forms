@@ -3,6 +3,7 @@ import Icon from '../Icon'
 import { backgroundStyle, loadFont, resolveTheme, themeVars } from '../lib/themes'
 import { recall, estimateMinutes } from '../lib/fields'
 import { googleCalendarUrl } from '../lib/calendar'
+import { downloadReceipt, receiptItems } from '../lib/receipt'
 import {
   ShortText, LongText, TextLine, PhoneInput, NumberInput, DateInput, SubfieldsInput, ChoiceInput,
   DropdownInput, PictureChoice, BoolInput, ScaleInput, RatingInput, RankingInput, MatrixInput, SignatureInput,
@@ -194,17 +195,36 @@ export function WelcomeScreen({ welcome, fields, count, onStart }) {
   )
 }
 
-export function EndingScreen({ ending, answers, fieldsById }) {
+export function EndingScreen({ ending, answers, fieldsById, receipt, schema, formTitle, preview }) {
   const t = (s) => recall(s, answers || {}, fieldsById)
   const cal = ending?.calendar?.enabled ? googleCalendarUrl(ending.calendar, t) : null
+  const showReceipt = ending?.receipt?.enabled !== false && receipt?.protocol && schema
+  const getReceipt = () =>
+    downloadReceipt({
+      title: formTitle || document.title,
+      protocol: receipt.protocol,
+      submittedAt: receipt.submittedAt,
+      items: receiptItems(schema, answers || {}),
+      url: preview ? '' : window.location.href.split('?')[0],
+    })
   return (
     <div className="fr-q fr-ending">
       <h1 className="fr-welcome-title">{t(ending?.title) || 'Obrigado!'}</h1>
       {ending?.description && <p className="fr-q-desc">{t(ending.description)}</p>}
-      {(cal || (ending?.buttonText && ending?.buttonUrl)) && (
+      {showReceipt && (
+        <p className="fr-protocol">
+          Protocolo <b>{receipt.protocol}</b>
+        </p>
+      )}
+      {(cal || showReceipt || (ending?.buttonText && ending?.buttonUrl)) && (
         <div className="fr-actions fr-actions-end">
+          {showReceipt && (
+            <button type="button" className="fr-btn" onClick={getReceipt}>
+              <Icon name="download" size={16} /> Baixar comprovante
+            </button>
+          )}
           {cal && (
-            <a className="fr-btn" href={cal} target="_blank" rel="noopener noreferrer">
+            <a className={`fr-btn ${showReceipt ? 'fr-btn-ghost' : ''}`} href={cal} target="_blank" rel="noopener noreferrer">
               <Icon name="calendar" size={16} /> Adicionar ao Google Agenda
             </a>
           )}

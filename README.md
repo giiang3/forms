@@ -16,6 +16,7 @@ App de formulários com uma pergunta por tela, hospedado no GitHub Pages, com ba
 - Incorporar em site (iframe), botão com popup (`embed.js`) e e-mail (primeira pergunta como links)
 - Pré-preenchimento pelo link: `#/f/<codigo>?pre_<idDaPergunta>=valor`
 - 24 temas, personalização de fonte, cores, fundo e botões, e "Meus temas"
+- Protocolo por envio e botão "Baixar comprovante" (PDF) na tela final
 - Botão "Adicionar ao Google Agenda" na tela final
 - Link curto e QR code por formulário
 - Resultados só para admin: visualizações, respostas, taxa de conclusão, tempo de preenchimento, resumo por pergunta, tabela, Excel e CSV

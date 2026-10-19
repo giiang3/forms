@@ -119,11 +119,11 @@ export default function PublicForm() {
       </FormFrame>
     )
   const prefill = parsePrefill(params, form.schema.fields || [])
-  return <Runner schema={form.schema} slug={form.slug} count={form.submission_count} prefill={prefill} closedMessage={form.closed_message} />
+  return <Runner schema={form.schema} slug={form.slug} count={form.submission_count} prefill={prefill} closedMessage={form.closed_message} formTitle={form.title} />
 }
 
 /** The interactive form. With `preview`, nothing is sent. */
-export function Runner({ schema, slug, count = 0, preview = false, onExit, prefill, closedMessage }) {
+export function Runner({ schema, slug, count = 0, preview = false, onExit, prefill, closedMessage, formTitle }) {
   const fields = schema.fields || []
   const fieldsById = useMemo(() => Object.fromEntries(flattenFields(fields).map((f) => [f.id, f])), [fields])
   const total = useMemo(() => answerableFields(fields).length, [fields])
@@ -139,6 +139,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
   const [dir, setDir] = useState('down')
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [receipt, setReceipt] = useState(null)
   const startedAt = useRef(hasPrefill ? new Date().toISOString() : null)
   const partial = useRef(null) // { id, token }
   const advanceTimer = useRef(null)
@@ -161,7 +162,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
   )
 
   const send = async (isPartial) => {
-    if (preview) return { ok: true }
+    if (preview) return { ok: true, receipt: { protocol: 'PREV-IA00', submittedAt: new Date().toISOString() } }
     const clean = Object.fromEntries(Object.entries(answers).filter(([, v]) => v != null && v !== ''))
     const { data, error } = await supabase.rpc('submit_response', {
       p_slug: slug,
@@ -177,7 +178,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
       return { ok: false, code, fieldId: error.details || null, message: message || 'Não foi possível enviar. Verifique sua conexão e tente de novo.' }
     }
     if (isPartial) partial.current = data
-    return { ok: true }
+    return { ok: true, receipt: { protocol: data?.protocol, submittedAt: data?.submitted_at } }
   }
 
   const go = (target, from) => {
@@ -211,6 +212,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
       return
     }
     const ending = (schema.endings || []).find((e) => e.id === endingId) || schema.endings?.[0]
+    setReceipt(res.receipt || null)
     setHistory([])
     go({ type: 'end', id: ending?.id ?? null })
     if (ending?.redirectUrl && !preview) setTimeout(() => window.location.assign(ending.redirectUrl), 1800)
@@ -319,7 +321,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
               isLast={nextTarget(schema, current.id, answers, fieldsById).type === 'end'}
             />
           )}
-          {screen.type === 'end' && <EndingScreen ending={ending} answers={answers} fieldsById={fieldsById} />}
+          {screen.type === 'end' && <EndingScreen ending={ending} answers={answers} fieldsById={fieldsById} receipt={receipt} schema={schema} formTitle={formTitle} preview={preview} />}
           {submitError && (
             <div className="fr-error fr-error-submit" role="alert">
               <span aria-hidden="true">!</span>

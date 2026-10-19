@@ -475,3 +475,4 @@
   .ad-logic-wrap .ad-logic { margin: 0; padding-top: 4px; }
 }
 .ad-map-canvas { margin: 0 auto; }
+.ad-mono { font-variant-numeric: tabular-nums; letter-spacing: .03em; font-weight: 600; }
