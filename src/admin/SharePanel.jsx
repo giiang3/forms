@@ -2,9 +2,80 @@ import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { supabase, publicFormUrl } from '../lib/supabase'
 import Icon from '../Icon'
-import { Toggle } from './ui'
+import { Toggle, Row, TextArea } from './ui'
+import EmbedPanel from './EmbedPanel'
 
-export default function SharePanel({ form, onForm, onPublish, dirty, toast }) {
+// <input type="datetime-local"> works in local time without a zone
+const toLocalInput = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function AutoClose({ form, onSave }) {
+  const [closeAt, setCloseAt] = useState(toLocalInput(form.close_at))
+  const [max, setMax] = useState(form.max_responses ?? '')
+  const [msg, setMsg] = useState(form.closed_message ?? '')
+  const [count, setCount] = useState(null)
+  useEffect(() => {
+    supabase.rpc('admin_form_counts').then(({ data }) => setCount(data?.find((r) => r.form_id === form.id)?.completed ?? 0))
+  }, [form.id])
+
+  const past = form.close_at && new Date(form.close_at) <= new Date()
+  const full = form.max_responses && count != null && count >= form.max_responses
+
+  return (
+    <div className="ad-autoclose">
+      <h3>Encerrar automaticamente</h3>
+      <div className="ad-two">
+        <Row label="Data e hora de encerramento" hint="Horário do seu computador.">
+          <div className="ad-inline">
+            <input
+              className="ad-input"
+              type="datetime-local"
+              value={closeAt}
+              onChange={(e) => setCloseAt(e.target.value)}
+              onBlur={() => onSave({ close_at: closeAt ? new Date(closeAt).toISOString() : null })}
+            />
+            {closeAt && (
+              <button
+                type="button"
+                className="ad-icon-btn"
+                aria-label="Remover data"
+                onClick={() => {
+                  setCloseAt('')
+                  onSave({ close_at: null })
+                }}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            )}
+          </div>
+        </Row>
+        <Row label="Limite de respostas" hint={count != null ? `${count} respostas completas até agora.` : ' '}>
+          <input
+            className="ad-input"
+            type="number"
+            min="1"
+            placeholder="Sem limite"
+            value={max}
+            onChange={(e) => setMax(e.target.value)}
+            onBlur={() => onSave({ max_responses: Number(max) > 0 ? Math.floor(Number(max)) : null })}
+          />
+        </Row>
+      </div>
+      <Row label="Mensagem para quem chegar depois do encerramento" hint="Opcional. Sem mensagem, aparece um texto padrão conforme o motivo.">
+        <TextArea rows={2} value={msg} onChange={setMsg} onBlur={() => onSave({ closed_message: msg.trim() || null })} placeholder="As inscrições foram encerradas. Dúvidas: …" />
+      </Row>
+      {(past || full) && !form.closed && (
+        <p className="ad-note">{past ? 'A data de encerramento já passou: o formulário está encerrado.' : 'O limite de respostas foi atingido: o formulário está encerrado.'}</p>
+      )}
+    </div>
+  )
+}
+
+export default function SharePanel({ form, schema, onForm, onPublish, dirty, toast }) {
   const url = publicFormUrl(form.slug)
   const canvas = useRef(null)
   const [slug, setSlug] = useState(form.slug)
@@ -76,7 +147,9 @@ export default function SharePanel({ form, onForm, onPublish, dirty, toast }) {
           <>
             <div className="ad-share-status">
               <p>
-                <span className={`ad-status ${form.closed ? 'is-closed' : 'is-live'}`}>{form.closed ? 'Encerrado' : 'No ar'}</span>{' '}
+                <span className={`ad-status ${form.closed || (form.close_at && new Date(form.close_at) <= new Date()) ? 'is-closed' : 'is-live'}`}>
+                  {form.closed || (form.close_at && new Date(form.close_at) <= new Date()) ? 'Encerrado' : 'No ar'}
+                </span>{' '}
                 {dirty ? 'Há alterações que ainda não foram publicadas.' : 'Tudo publicado.'}
               </p>
               {dirty && (
@@ -89,6 +162,7 @@ export default function SharePanel({ form, onForm, onPublish, dirty, toast }) {
             <Toggle label="Link ativo" hint="Desligue para tirar o formulário do ar sem apagar nada." checked={form.published} onChange={(v) => setFlag({ published: v })} />
           </>
         )}
+        <AutoClose form={form} onSave={setFlag} />
       </section>
 
       <section className="ad-card">
@@ -124,6 +198,8 @@ export default function SharePanel({ form, onForm, onPublish, dirty, toast }) {
           </button>
         </div>
       </section>
+
+      <EmbedPanel form={form} schema={schema} url={url} toast={toast} />
     </div>
   )
 }

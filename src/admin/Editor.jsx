@@ -256,7 +256,7 @@ export default function Editor() {
 
         {tab === 'share' && (
           <main className="ad-center-col ad-center-scroll">
-            <SharePanel form={form} onForm={(p) => setForm((f) => ({ ...f, ...p }))} onPublish={publish} dirty={dirty} toast={showToast} />
+            <SharePanel form={form} schema={published?.fields ? published : draft} onForm={(p) => setForm((f) => ({ ...f, ...p }))} onPublish={publish} dirty={dirty} toast={showToast} />
           </main>
         )}
 

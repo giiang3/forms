@@ -36,7 +36,7 @@ export default function FormsList({ session }) {
 
   const load = async () => {
     const [{ data, error }, { data: c }] = await Promise.all([
-      supabase.from('forms').select('id, slug, title, published, closed, updated_at, created_at').order('updated_at', { ascending: false }),
+      supabase.from('forms').select('id, slug, title, published, closed, close_at, max_responses, updated_at, created_at').order('updated_at', { ascending: false }),
       supabase.rpc('admin_form_counts'),
     ])
     if (error) showToast('Não foi possível carregar os formulários.', 'err')
@@ -131,7 +131,8 @@ export default function FormsList({ session }) {
               <tbody>
                 {forms.map((f) => {
                   const c = counts[f.id]
-                  const status = !f.published ? ['Rascunho', 'draft'] : f.closed ? ['Encerrado', 'closed'] : ['No ar', 'live']
+                  const autoClosed = (f.close_at && new Date(f.close_at) <= new Date()) || (f.max_responses && (c?.completed ?? 0) >= f.max_responses)
+                  const status = !f.published ? ['Rascunho', 'draft'] : f.closed || autoClosed ? ['Encerrado', 'closed'] : ['No ar', 'live']
                   return (
                     <tr key={f.id}>
                       <td>

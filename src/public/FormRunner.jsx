@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { flattenFields, answerableFields } from '../lib/fields'
 import { nextTarget } from '../lib/logic'
 import { validateField, autoAdvances } from '../lib/answers'
+import { domainError } from '../lib/validation'
 import { FormFrame, FieldScreen, WelcomeScreen, EndingScreen } from './Screens'
 import Icon from '../Icon'
 import './runner.css'
@@ -12,10 +13,65 @@ const ERRORS = {
   duplicate: 'Esta resposta já foi usada por outra pessoa. Confira o que você digitou.',
   invalid_cpf: 'CPF inválido. Confira os números.',
   form_unavailable: 'Este formulário não está recebendo respostas agora.',
+  email_domain: 'Este e-mail não é aceito neste formulário.',
+}
+
+const CLOSED_TEXT = {
+  date: 'O prazo para responder este formulário terminou.',
+  limit: 'Este formulário atingiu o número máximo de respostas.',
+  manual: 'Este formulário não está mais recebendo respostas.',
+}
+
+/** Turn ?pre_<fieldId>=value into typed answers. */
+export function parsePrefill(params, fields) {
+  const byId = Object.fromEntries(flattenFields(fields).map((f) => [f.id, f]))
+  const out = {}
+  for (const [k, raw] of params.entries()) {
+    if (!k.startsWith('pre_')) continue
+    const f = byId[k.slice(4)]
+    if (!f || raw === '') continue
+    const findOpt = (v) => f.props?.options?.find((o) => o.id === v || o.label.toLowerCase() === v.toLowerCase())?.id
+    switch (f.type) {
+      case 'multiple_choice':
+      case 'dropdown':
+      case 'picture_choice':
+        if (f.type !== 'dropdown' && f.props?.multiple) out[f.id] = raw.split(',').map(findOpt).filter(Boolean)
+        else if (findOpt(raw)) out[f.id] = findOpt(raw)
+        break
+      case 'checkbox':
+        out[f.id] = raw.split(',').map(findOpt).filter(Boolean)
+        break
+      case 'yes_no':
+      case 'legal':
+        if (raw === 'true' || raw === 'false') out[f.id] = raw === 'true'
+        break
+      case 'nps':
+      case 'opinion_scale':
+      case 'rating':
+        if (!Number.isNaN(Number(raw))) out[f.id] = Number(raw)
+        break
+      case 'short_text':
+        if (f.props?.selector?.enabled) break
+        out[f.id] = raw
+        break
+      case 'long_text':
+      case 'email':
+      case 'phone':
+      case 'website':
+      case 'number':
+      case 'date':
+        out[f.id] = raw
+        break
+      default:
+        break
+    }
+  }
+  return out
 }
 
 export default function PublicForm() {
   const { slug } = useParams()
+  const [params] = useSearchParams()
   const [state, setState] = useState({ status: 'loading' })
 
   useEffect(() => {
@@ -57,29 +113,33 @@ export default function PublicForm() {
         <div className="fr-stage">
           <div className="fr-q">
             <h1 className="fr-welcome-title">{form.title}</h1>
-            <p className="fr-q-desc">Este formulário não está mais recebendo respostas.</p>
+            <p className="fr-q-desc">{form.closed_message?.trim() || CLOSED_TEXT[form.closed_reason] || CLOSED_TEXT.manual}</p>
           </div>
         </div>
       </FormFrame>
     )
-  return <Runner schema={form.schema} slug={form.slug} count={form.submission_count} />
+  const prefill = parsePrefill(params, form.schema.fields || [])
+  return <Runner schema={form.schema} slug={form.slug} count={form.submission_count} prefill={prefill} closedMessage={form.closed_message} />
 }
 
 /** The interactive form. With `preview`, nothing is sent. */
-export function Runner({ schema, slug, count = 0, preview = false, onExit }) {
+export function Runner({ schema, slug, count = 0, preview = false, onExit, prefill, closedMessage }) {
   const fields = schema.fields || []
   const fieldsById = useMemo(() => Object.fromEntries(flattenFields(fields).map((f) => [f.id, f])), [fields])
   const total = useMemo(() => answerableFields(fields).length, [fields])
   const welcomeOn = schema.welcome?.enabled !== false
 
-  const [screen, setScreen] = useState(welcomeOn ? { type: 'welcome' } : fields[0] ? { type: 'field', id: fields[0].id } : { type: 'end', id: null })
+  const hasPrefill = prefill && Object.keys(prefill).length > 0
+  const [screen, setScreen] = useState(
+    welcomeOn && !hasPrefill ? { type: 'welcome' } : fields[0] ? { type: 'field', id: fields[0].id } : { type: 'end', id: null },
+  )
   const [history, setHistory] = useState([])
-  const [answers, setAnswers] = useState({})
+  const [answers, setAnswers] = useState(() => ({ ...(prefill || {}) }))
   const [errors, setErrors] = useState({})
   const [dir, setDir] = useState('down')
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const startedAt = useRef(null)
+  const startedAt = useRef(hasPrefill ? new Date().toISOString() : null)
   const partial = useRef(null) // { id, token }
   const advanceTimer = useRef(null)
 
@@ -113,7 +173,8 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit }) {
     })
     if (error) {
       const code = Object.keys(ERRORS).find((k) => error.message?.includes(k))
-      return { ok: false, code, fieldId: error.details || null, message: ERRORS[code] || 'Não foi possível enviar. Verifique sua conexão e tente de novo.' }
+      const message = code === 'form_unavailable' && closedMessage?.trim() ? closedMessage.trim() : ERRORS[code]
+      return { ok: false, code, fieldId: error.details || null, message: message || 'Não foi possível enviar. Verifique sua conexão e tente de novo.' }
     }
     if (isPartial) partial.current = data
     return { ok: true }
@@ -135,6 +196,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit }) {
         const f = fieldsById[res.fieldId]
         const owner = f._group || res.fieldId
         let message = res.message
+        if (res.code === 'email_domain') message = domainError(f.props) || res.message
         if (res.code === 'duplicate') {
           const a = answers[res.fieldId]
           const opt = a && typeof a === 'object' ? f.props?.selector?.options?.find((o) => o.id === a.option) : null

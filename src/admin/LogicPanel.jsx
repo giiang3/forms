@@ -1,6 +1,7 @@
 import { flattenFields, NON_ANSWER_TYPES, uid } from '../lib/fields'
 import { OPS, opsFor, newRule } from '../lib/logic'
 import Icon from '../Icon'
+import LogicMap from './LogicMap'
 
 const CHOICE = ['multiple_choice', 'dropdown', 'picture_choice', 'checkbox']
 
@@ -85,14 +86,21 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
     return l && (l.rules?.some((r) => r.to) || l.otherwise)
   })
 
+  const map = <LogicMap schema={schema} selectedId={screenId} onSelect={onSelect} />
+
   if (!screen)
     return (
-      <div className="ad-logic">
-        <p className="ad-note">Escolha uma pergunta na lista à esquerda para criar regras de lógica.</p>
+      <div className="ad-logic-wrap">
+        {map}
+        <div className="ad-logic">
+          <p className="ad-note">Clique numa pergunta no mapa ou na lista à esquerda para criar ou mudar as regras dela.</p>
+        </div>
       </div>
     )
 
   return (
+    <div className="ad-logic-wrap">
+      {map}
     <div className="ad-logic">
       <div className="ad-logic-head">
         <h2>Lógica de “{screen.title || 'Sem título'}”</h2>
@@ -183,6 +191,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
           ))}
         </div>
       )}
+    </div>
     </div>
   )
 }

@@ -27,6 +27,21 @@ export function isValidCNPJ(value) {
 
 export const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v ?? '').trim())
 
+/** domains: list like ["saude.mg.gov.br"]. Empty list accepts any domain. */
+export function emailDomainOk(email, domains, allowSubdomains) {
+  const list = (domains || []).map((d) => String(d).trim().toLowerCase().replace(/^@/, '')).filter(Boolean)
+  if (!list.length) return true
+  const e = String(email ?? '').trim().toLowerCase()
+  return list.some((d) => e.endsWith(`@${d}`) || (allowSubdomains && e.endsWith(`.${d}`)))
+}
+
+export function domainError(props) {
+  if (props?.domainError?.trim()) return props.domainError.trim()
+  const list = (props?.allowedDomains || []).map((d) => `@${String(d).trim().replace(/^@/, '')}`).filter((d) => d.length > 1)
+  if (!list.length) return null
+  return list.length === 1 ? `Use um e-mail ${list[0]}.` : `Use um e-mail destes domínios: ${list.join(', ')}.`
+}
+
 export const isValidUrl = (v) => {
   const s = String(v ?? '').trim()
   if (!s) return false

@@ -7,14 +7,18 @@ App de formulários com uma pergunta por tela, hospedado no GitHub Pages, com ba
 
 ## O que tem
 
-- Editor com 22 tipos de pergunta, grupos de perguntas, lógica de saltos, telas de boas-vindas e finais
+- Editor com 22 tipos de pergunta, grupos de perguntas, lógica de saltos com mapa visual, telas de boas-vindas e finais
 - Seletor ao lado do campo de texto (ex.: CPF / RG), cada opção com sua validação
 - "Não aceitar resposta repetida" por campo, checado no banco
 - Validação de CPF no navegador e no banco
+- Campo de e-mail que aceita só domínios escolhidos (ex.: `saude.mg.gov.br`), checado também no banco
+- Encerramento manual, por data ou por número de respostas, com mensagem própria
+- Incorporar em site (iframe), botão com popup (`embed.js`) e e-mail (primeira pergunta como links)
+- Pré-preenchimento pelo link: `#/f/<codigo>?pre_<idDaPergunta>=valor`
 - 24 temas, personalização de fonte, cores, fundo e botões, e "Meus temas"
 - Botão "Adicionar ao Google Agenda" na tela final
 - Link curto e QR code por formulário
-- Resultados só para admin: visualizações, respostas, taxa de conclusão, tempo de preenchimento, resumo por pergunta, tabela e CSV
+- Resultados só para admin: visualizações, respostas, taxa de conclusão, tempo de preenchimento, resumo por pergunta, tabela, Excel e CSV
 
 ## Como funciona a segurança
 

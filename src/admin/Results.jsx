@@ -316,25 +316,73 @@ export default function Results() {
     return base.filter((r) => fields.some((f) => formatAnswer(r.answers?.[f.id], f).toLowerCase().includes(s)))
   }, [rows, completed, partials, status, q, fields])
 
-  const exportCsv = () => {
-    const head = ['Enviada em', 'Situação', 'Tempo de preenchimento', ...fields.map((f) => f.title || f.id)]
-    const lines = [head.map(csvCell).join(';')]
-    for (const r of listRows) {
-      lines.push(
-        [
-          fmtDateTime(r.submitted_at),
-          r.status === 'completed' ? 'Completa' : 'Parcial',
-          fmtDuration(r.duration_ms),
-          ...fields.map((f) => (f.type === 'signature' && r.answers?.[f.id] ? 'assinatura (ver no painel)' : formatAnswer(r.answers?.[f.id], f))),
-        ]
-          .map(csvCell)
-          .join(';'),
-      )
+  const fileBase = () =>
+    (form.title || 'respostas').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\- ]+/g, '').trim().slice(0, 80) || 'respostas'
+
+  // One column per answer; selector fields and contact/address fields are split
+  const exportColumns = () => {
+    const cols = [
+      {
+        header: 'Enviada em',
+        width: 18,
+        // Excel has no time zone: shift so the cell shows the viewer's local time
+        get: (r) => {
+          const d = new Date(r.submitted_at)
+          return { value: new Date(d.getTime() - d.getTimezoneOffset() * 60000), format: 'dd/mm/yyyy hh:mm' }
+        },
+      },
+      { header: 'Situação', width: 11, get: (r) => (r.status === 'completed' ? 'Completa' : 'Parcial') },
+      { header: 'Tempo (segundos)', width: 10, get: (r) => (r.duration_ms == null ? null : Math.round(r.duration_ms / 1000)) },
+    ]
+    for (const f of fields) {
+      const title = f.title || f.id
+      if (f.type === 'short_text' && f.props?.selector?.enabled) {
+        const opts = f.props.selector.options || []
+        cols.push({ header: `${title} (tipo)`, width: 10, get: (r) => opts.find((o) => o.id === r.answers?.[f.id]?.option)?.label ?? null })
+        cols.push({ header: title, width: 22, get: (r) => r.answers?.[f.id]?.value ?? null })
+      } else if (f.type === 'contact_info' || f.type === 'address') {
+        for (const [k, sub] of Object.entries(f.props?.subfields || {}).filter(([, x]) => x.enabled))
+          cols.push({ header: `${title}: ${sub.label}`, width: 20, get: (r) => r.answers?.[f.id]?.[k] ?? null })
+      } else if (['nps', 'opinion_scale', 'rating'].includes(f.type)) {
+        cols.push({ header: title, width: 10, get: (r) => (r.answers?.[f.id] == null ? null : Number(r.answers[f.id])) })
+      } else if (f.type === 'number') {
+        cols.push({ header: title, width: 12, get: (r) => {
+          const n = Number(String(r.answers?.[f.id] ?? '').replace(',', '.'))
+          return r.answers?.[f.id] == null || Number.isNaN(n) ? null : n
+        } })
+      } else if (f.type === 'signature') {
+        cols.push({ header: title, width: 14, get: (r) => (r.answers?.[f.id] ? 'assinada (ver no painel)' : null) })
+      } else {
+        cols.push({ header: title, width: 24, get: (r) => formatAnswer(r.answers?.[f.id], f) || null })
+      }
     }
-    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+    return cols
+  }
+
+  const exportXlsx = async () => {
+    try {
+      const { default: writeExcelFile } = await import('write-excel-file/browser')
+      const cols = exportColumns()
+      const data = [
+        cols.map((c) => ({ value: c.header, fontWeight: 'bold' })),
+        ...listRows.map((r) => cols.map((c) => c.get(r))),
+      ]
+      await writeExcelFile(data, { columns: cols.map((c) => ({ width: c.width })), stickyRowsCount: 1 }).toFile(`${fileBase()}.xlsx`)
+    } catch (e) {
+      console.error(e)
+      showToast('Não foi possível gerar o Excel. Tente o CSV.', 'err')
+    }
+  }
+
+  const exportCsv = () => {
+    const cols = exportColumns()
+    const cell = (v) => (v && typeof v === 'object' && v.value instanceof Date ? fmtDateTime(v.value.toISOString()) : v)
+    const lines = [cols.map((c) => csvCell(c.header)).join(';')]
+    for (const r of listRows) lines.push(cols.map((c) => csvCell(cell(c.get(r)))).join(';'))
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `${(form.title || 'respostas').replace(/[^\w\- ]+/g, '').trim() || 'respostas'}.csv`
+    a.download = `${fileBase()}.csv`
     a.click()
   }
 
@@ -448,8 +496,11 @@ export default function Results() {
                 <option value="partial">Parciais ({partials.length})</option>
                 <option value="all">Todas ({rows.length})</option>
               </select>
-              <button className="ad-btn" onClick={exportCsv} disabled={!listRows.length}>
-                <Icon name="download" size={16} /> Exportar CSV
+              <button className="ad-btn ad-btn-primary" onClick={exportXlsx} disabled={!listRows.length}>
+                <Icon name="download" size={16} /> Exportar Excel
+              </button>
+              <button className="ad-btn ad-btn-quiet" onClick={exportCsv} disabled={!listRows.length}>
+                CSV
               </button>
             </div>
             {listRows.length === 0 ? (

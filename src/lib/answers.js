@@ -1,4 +1,4 @@
-import { checkValidation, isValidEmail, isValidPhone, isValidUrl } from './validation'
+import { checkValidation, isValidEmail, isValidPhone, isValidUrl, emailDomainOk, domainError } from './validation'
 
 const blank = (v) => v == null || (typeof v === 'string' && !v.trim()) || (Array.isArray(v) && v.length === 0)
 
@@ -31,7 +31,8 @@ export function validateField(field, value) {
       return null
     case 'email':
       if (blank(value)) return req ? 'Preencha este campo.' : null
-      return isValidEmail(value) ? null : 'Digite um e-mail válido, como nome@exemplo.com.'
+      if (!isValidEmail(value)) return 'Digite um e-mail válido, como nome@exemplo.com.'
+      return emailDomainOk(value, p.allowedDomains, p.allowSubdomains) ? null : domainError(p)
     case 'phone':
       if (blank(value)) return req ? 'Preencha este campo.' : null
       return isValidPhone(value) ? null : 'Digite o telefone com DDD.'
@@ -62,6 +63,7 @@ export function validateField(field, value) {
       for (const [k, s] of subs) {
         if ((s.required || (req && !anyFilled)) && blank(v[k])) return `Preencha ${s.label.toLowerCase()}.`
         if (k === 'email' && !blank(v[k]) && !isValidEmail(v[k])) return 'Digite um e-mail válido.'
+        if (k === 'email' && !blank(v[k]) && !emailDomainOk(v[k], p.allowedDomains, p.allowSubdomains)) return domainError(p)
         if (k === 'phone' && !blank(v[k]) && !isValidPhone(v[k])) return 'Digite o telefone com DDD.'
       }
       return null

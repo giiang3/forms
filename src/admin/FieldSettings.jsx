@@ -101,6 +101,22 @@ function UniqueToggle({ p, onProps }) {
   )
 }
 
+function DomainSettings({ p, onProps }) {
+  const list = p.allowedDomains || []
+  const active = list.some((d) => String(d).trim())
+  return (
+    <Section title="Domínios aceitos" defaultOpen={active}>
+      <Row label="Aceitar só e-mails destes domínios" hint="Um por linha, sem o @. Deixe vazio para aceitar qualquer e-mail.">
+        <TextArea rows={3} value={list.join('\n')} onChange={(v) => onProps({ allowedDomains: v.split('\n') })} placeholder="saude.mg.gov.br" />
+      </Row>
+      <Toggle label="Aceitar subdomínios" hint="Ex.: com saude.mg.gov.br, aceita também nome@ses.saude.mg.gov.br." checked={p.allowSubdomains} onChange={(v) => onProps({ allowSubdomains: v })} />
+      <Row label="Mensagem de erro" hint="Opcional. Sem mensagem, aparece “Use um e-mail @domínio”.">
+        <TextInput value={p.domainError} onChange={(v) => onProps({ domainError: v })} placeholder="Use seu e-mail institucional." />
+      </Row>
+    </Section>
+  )
+}
+
 function TypeSettings({ field, p, onProps }) {
   switch (field.type) {
     case 'short_text': {
@@ -179,12 +195,15 @@ function TypeSettings({ field, p, onProps }) {
     case 'phone':
     case 'website':
       return (
-        <Section title="Resposta">
-          <Row label="Texto de exemplo">
-            <TextInput value={p.placeholder} onChange={(v) => onProps({ placeholder: v })} />
-          </Row>
-          {field.type !== 'website' && <UniqueToggle p={p} onProps={onProps} />}
-        </Section>
+        <>
+          <Section title="Resposta">
+            <Row label="Texto de exemplo">
+              <TextInput value={p.placeholder} onChange={(v) => onProps({ placeholder: v })} />
+            </Row>
+            {field.type !== 'website' && <UniqueToggle p={p} onProps={onProps} />}
+          </Section>
+          {field.type === 'email' && <DomainSettings p={p} onProps={onProps} />}
+        </>
       )
     case 'number':
       return (
@@ -206,6 +225,7 @@ function TypeSettings({ field, p, onProps }) {
     case 'contact_info':
     case 'address':
       return (
+        <>
         <Section title="Campos">
           <div className="ad-subs">
             {Object.entries(p.subfields || {}).map(([k, s]) => (
@@ -220,6 +240,8 @@ function TypeSettings({ field, p, onProps }) {
             ))}
           </div>
         </Section>
+        {field.type === 'contact_info' && p.subfields?.email?.enabled && <DomainSettings p={p} onProps={onProps} />}
+        </>
       )
     case 'multiple_choice':
     case 'checkbox':
