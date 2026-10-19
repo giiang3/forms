@@ -163,9 +163,8 @@
 .fr-date { display: flex; align-items: flex-end; gap: 10px; }
 .fr-date-part { display: grid; gap: 6px; }
 .fr-date-part span { font-size: 14px; color: var(--a-55); }
-.fr-date-part:nth-child(1) .fr-line, .fr-date-part:nth-child(3) .fr-line { width: 3.2ch; }
-.fr-date-part:nth-of-type(3) .fr-line { width: 5.2ch; }
 .fr-date-part .fr-line { width: 3.2ch; text-align: center; }
+.fr-date-part:nth-of-type(3) .fr-line { width: 5.2ch; }
 .fr-date-sep { font-size: 28px; color: var(--a-30); padding-bottom: 8px; }
 
 /* Subfields */
