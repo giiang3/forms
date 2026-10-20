@@ -78,6 +78,11 @@ export function FieldSettings({ schema, field, parent, onPatch, onProps, onChang
               options={[{ value: '', label: 'Página própria' }, ...groups.map((g) => ({ value: g.id, label: screenLabel(g) }))]}
             />
           </Row>
+          {parent && (
+            <Row label="Largura na página" hint="Dois campos seguidos com “Metade” ficam lado a lado na mesma linha. No celular, ficam um embaixo do outro.">
+              <Select value={field.half ? 'half' : 'full'} onChange={(v) => onPatch({ half: v === 'half' })} options={[{ value: 'full', label: 'Linha inteira' }, { value: 'half', label: 'Metade (lado a lado)' }]} />
+            </Row>
+          )}
         </Section>
       )}
 

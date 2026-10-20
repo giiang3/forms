@@ -113,7 +113,7 @@ export function FieldScreen({ field, number, answers, setAnswer, errors = {}, on
       {isGroup ? (
         <div className="fr-group">
           {(field.children || []).map((c, i) => (
-            <div key={c.id} className="fr-group-item">
+            <div key={c.id} className={`fr-group-item ${c.half ? 'is-half' : ''}`}>
               <Title number={`${number}${String.fromCharCode(97 + i)}`} html={t(c.title)} required={c.required && c.type !== 'statement'} small />
               <Rich as="p" className="fr-q-desc" html={t(c.description)} />
               {c.image && <img className="fr-q-img" src={c.image} alt="" />}

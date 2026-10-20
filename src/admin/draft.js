@@ -136,7 +136,7 @@ export function moveToGroup(schema, id, groupId) {
 export function changeType(schema, id, type) {
   return mapField(schema, id, (f) => {
     const fresh = newField(type)
-    return { ...fresh, id: f.id, title: f.title, description: f.description, image: f.image, required: f.required }
+    return { ...fresh, id: f.id, title: f.title, description: f.description, image: f.image, required: f.required, half: f.half }
   })
 }
 

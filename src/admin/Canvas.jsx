@@ -94,7 +94,7 @@ function FieldPreview({ field, isGroupChild, onPatch, schema }) {
         <div className="fr-group">
           {(field.children || []).length === 0 && <p className="fr-hint">Esta página está vazia. Use “Adicionar nesta página” na lista.</p>}
           {(field.children || []).map((c, i) => (
-            <div key={c.id} className="fr-group-item">
+            <div key={c.id} className={`fr-group-item ${c.half ? 'is-half' : ''}`}>
               <div className="fr-q-head is-small">
                 <span className="fr-q-num">
                   {numberFor(schema, c.id)}
