@@ -8,6 +8,7 @@ App de formulários com uma pergunta por tela, hospedado no GitHub Pages, com ba
 ## O que tem
 
 - Editor com 22 tipos de pergunta, grupos de perguntas, lógica de saltos com mapa visual, telas de boas-vindas e finais
+- Negrito, itálico, sublinhado e link em títulos e descrições (selecione o texto ou use Ctrl+B, I, U, K)
 - Seletor ao lado do campo de texto (ex.: CPF / RG), cada opção com sua validação
 - "Não aceitar resposta repetida" por campo, checado no banco
 - Validação de CPF no navegador e no banco

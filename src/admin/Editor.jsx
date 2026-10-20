@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { plainLine } from '../lib/rich'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { newSchema } from '../lib/fields'
@@ -263,7 +264,7 @@ export default function Editor() {
         {showCanvas && <aside className="ad-right">{right}</aside>}
       </div>
 
-      {adding && <AddFieldModal onClose={() => setAdding(false)} onPick={onAddPick} groupName={groupForAdd ? groupForAdd.title || 'Grupo' : null} />}
+      {adding && <AddFieldModal onClose={() => setAdding(false)} onPick={onAddPick} groupName={groupForAdd ? plainLine(groupForAdd.title) || 'Grupo' : null} />}
       {preview && (
         <div className="ad-preview">
           <Runner schema={draft} preview onExit={() => setPreview(false)} />

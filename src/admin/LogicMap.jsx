@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { plainLine } from '../lib/rich'
 import { FIELD_TYPES, flattenFields } from '../lib/fields'
 import { OPS } from '../lib/logic'
 import Icon from '../Icon'
@@ -29,7 +30,7 @@ function ruleText(rule, byId, fromId) {
       const f = byId[c.field]
       const v = valueLabel(f, c.op, c.value)
       const own = c.field === fromId
-      return `${own ? '' : `${f?.title || '?'}: `}${OPS[c.op] || c.op}${v ? ` “${v}”` : ''}`
+      return `${own ? '' : `${plainLine(f?.title) || '?'}: `}${OPS[c.op] || c.op}${v ? ` “${v}”` : ''}`
     })
     .join(rule.join === 'or' ? ' ou ' : ' e ')
 }
@@ -41,14 +42,14 @@ export function buildGraph(schema) {
   const firstEnd = endings[0] ? `end:${endings[0].id}` : null
   const nodes = []
   const welcomeOn = schema.welcome?.enabled !== false
-  if (welcomeOn) nodes.push({ id: 'welcome', kind: 'welcome', title: schema.welcome?.title || 'Boas-vindas' })
+  if (welcomeOn) nodes.push({ id: 'welcome', kind: 'welcome', title: plainLine(schema.welcome?.title) || 'Boas-vindas' })
   let num = 0
   for (const f of fields) {
     const counted = f.type !== 'statement' && f.type !== 'partial_submit'
     if (counted) num += 1
-    nodes.push({ id: f.id, kind: 'field', field: f, title: f.title || 'Sem título', num: counted ? num : null })
+    nodes.push({ id: f.id, kind: 'field', field: f, title: plainLine(f.title) || 'Sem título', num: counted ? num : null })
   }
-  endings.forEach((e, i) => nodes.push({ id: `end:${e.id}`, kind: 'end', title: e.title || 'Tela final', letter: String.fromCharCode(65 + i) }))
+  endings.forEach((e, i) => nodes.push({ id: `end:${e.id}`, kind: 'end', title: plainLine(e.title) || 'Tela final', letter: String.fromCharCode(65 + i) }))
   const valid = new Set(nodes.map((n) => n.id))
   const norm = (t) => (t && valid.has(t) ? t : null)
 

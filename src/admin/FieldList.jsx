@@ -1,4 +1,5 @@
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { plainLine } from '../lib/rich'
 import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { FIELD_TYPES } from '../lib/fields'
@@ -27,7 +28,7 @@ function Item({ field, num, selected, onSelect, hasLogic, child, sortable }) {
           <Icon name={d?.glyph} size={13} stroke={2} />
           {num && <b>{num}</b>}
         </span>
-        <span className="ad-item-title">{field.title || <i>Sem título</i>}</span>
+        <span className="ad-item-title">{plainLine(field.title) || <i>Sem título</i>}</span>
         {hasLogic && (
           <span className="ad-item-logic" title="Tem lógica">
             <Icon name="logic" size={14} />
@@ -56,7 +57,7 @@ export default function FieldList({ schema, selected, onSelect, onAdd, onAddEndi
             <span className="ad-item-chip is-neutral">
               <Icon name="welcome" size={13} stroke={2} />
             </span>
-            <span className="ad-item-title">{schema.welcome?.title || 'Boas-vindas'}</span>
+            <span className="ad-item-title">{plainLine(schema.welcome?.title) || 'Boas-vindas'}</span>
           </button>
         </div>
 
@@ -100,7 +101,7 @@ export default function FieldList({ schema, selected, onSelect, onAdd, onAddEndi
                 <Icon name="end" size={13} stroke={2} />
                 <b>{String.fromCharCode(65 + i)}</b>
               </span>
-              <span className="ad-item-title">{e.title || 'Tela final'}</span>
+              <span className="ad-item-title">{plainLine(e.title) || 'Tela final'}</span>
               {e.calendar?.enabled && (
                 <span className="ad-item-logic" title="Botão Google Agenda">
                   <Icon name="calendar" size={14} />

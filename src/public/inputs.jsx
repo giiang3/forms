@@ -3,6 +3,7 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, 
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Icon from '../Icon'
+import { plainLine } from '../lib/rich'
 import { applyMask, maskPhoneBR } from '../lib/validation'
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -121,7 +122,7 @@ export function ShortText({ field, value, onChange, onEnter, autoFocus }) {
           onChange={(t) => onChange({ option: opt.id, value: applyMask(opt.validation, t) })}
           onEnter={onEnter}
           autoFocus={autoFocus}
-          ariaLabel={field.title}
+          ariaLabel={plainLine(field.title)}
         />
       </div>
     )
@@ -135,7 +136,7 @@ export function ShortText({ field, value, onChange, onEnter, autoFocus }) {
       onChange={(t) => onChange(applyMask(p.validation, t))}
       onEnter={onEnter}
       autoFocus={autoFocus}
-      ariaLabel={field.title}
+      ariaLabel={plainLine(field.title)}
     />
   )
 }
@@ -160,7 +161,7 @@ export function LongText({ field, value, onChange, onEnter, autoFocus }) {
         value={value ?? ''}
         placeholder={field.props?.placeholder}
         maxLength={field.props?.maxLength || undefined}
-        aria-label={field.title}
+        aria-label={plainLine(field.title)}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
@@ -184,7 +185,7 @@ export function PhoneInput({ field, value, onChange, onEnter, autoFocus }) {
       onChange={(t) => onChange(maskPhoneBR(t))}
       onEnter={onEnter}
       autoFocus={autoFocus}
-      ariaLabel={field.title}
+      ariaLabel={plainLine(field.title)}
     />
   )
 }
@@ -198,7 +199,7 @@ export function NumberInput({ field, value, onChange, onEnter, autoFocus }) {
       onChange={(t) => onChange(t.replace(/[^\d.,-]/g, ''))}
       onEnter={onEnter}
       autoFocus={autoFocus}
-      ariaLabel={field.title}
+      ariaLabel={plainLine(field.title)}
     />
   )
 }
@@ -418,7 +419,7 @@ export function DropdownInput({ field, value, onChange, onAutoAdvance, autoFocus
           className="fr-line"
           value={query}
           placeholder={p.placeholder || 'Digite ou selecione uma opção'}
-          aria-label={field.title}
+          aria-label={plainLine(field.title)}
           aria-expanded={open}
           role="combobox"
           onClick={() => setOpen(true)}

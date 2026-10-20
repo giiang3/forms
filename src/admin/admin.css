@@ -476,3 +476,21 @@
 }
 .ad-map-canvas { margin: 0 auto; }
 .ad-mono { font-variant-numeric: tabular-nums; letter-spacing: .03em; font-weight: 600; }
+
+/* Rich text editing on the canvas */
+.ad-rich { min-height: 1.3em; cursor: text; white-space: normal; word-break: break-word; }
+.ad-rich:empty::before { content: attr(data-placeholder); color: color-mix(in srgb, var(--q) 35%, transparent); pointer-events: none; }
+.ad-rich a { color: var(--a); text-decoration: underline; text-underline-offset: 3px; }
+.ad-rtb {
+  position: fixed; z-index: 90; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 4px;
+  background: #171a26; border-radius: 9px; box-shadow: 0 8px 24px rgba(23,26,38,.28);
+}
+.ad-rtb button {
+  display: grid; place-items: center; width: 32px; height: 30px;
+  border: 0; border-radius: 6px; background: transparent; color: #e8eaf2;
+  font: 600 15px 'Schibsted Grotesk', system-ui, sans-serif; cursor: pointer;
+}
+.ad-rtb button:hover { background: rgba(255,255,255,.12); }
+.ad-rtb button.is-on { background: #fff; color: #171a26; }
+.ad-rtb-sep { width: 1px; height: 18px; background: rgba(255,255,255,.2); margin: 0 3px; }

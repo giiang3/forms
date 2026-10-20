@@ -1,4 +1,5 @@
 import { FIELD_TYPES, NON_ANSWER_TYPES, answerableFields } from '../lib/fields'
+import { plainLine } from '../lib/rich'
 import { VALIDATIONS } from '../lib/validation'
 import { googleCalendarUrl } from '../lib/calendar'
 import Icon from '../Icon'
@@ -21,7 +22,7 @@ function RecallPicker({ fields, currentId, onPick }) {
         <option value="">Escolha uma pergunta…</option>
         {before.map((f) => (
           <option key={f.id} value={f.id}>
-            {f.title || 'Sem título'}
+            {plainLine(f.title) || 'Sem título'}
           </option>
         ))}
       </select>
@@ -72,7 +73,7 @@ export function FieldSettings({ schema, field, parent, onPatch, onProps, onChang
             <Select
               value={parent?.id || ''}
               onChange={(v) => onMoveToGroup(v || null)}
-              options={[{ value: '', label: 'Fora de grupo' }, ...groups.map((g) => ({ value: g.id, label: g.title || 'Grupo sem título' }))]}
+              options={[{ value: '', label: 'Fora de grupo' }, ...groups.map((g) => ({ value: g.id, label: plainLine(g.title) || 'Grupo sem título' }))]}
             />
           </Row>
         </Section>
@@ -444,7 +445,7 @@ export function EndingSettings({ ending, schema, onChange, onRemove, canRemove }
                   <option value="">Escolha uma pergunta…</option>
                   {fields.map((f) => (
                     <option key={f.id} value={f.id}>
-                      {f.title || 'Sem título'}
+                      {plainLine(f.title) || 'Sem título'}
                     </option>
                   ))}
                 </select>

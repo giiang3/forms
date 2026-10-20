@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { plainLine } from '../lib/rich'
 import { resolveTheme } from '../lib/themes'
 import Icon from '../Icon'
 
@@ -56,7 +57,7 @@ function emailHtml({ url, title, field, theme, buttonText }) {
               `<a href="${esc(link(v))}" target="_blank" style="display:block;margin:0 0 8px;padding:10px 14px;border:1px solid ${a};border-radius:6px;color:${a};font-family:${font};font-size:16px;text-decoration:none;">${esc(label)}</a>`,
           )
           .join('')
-    body = `<p style="margin:0 0 16px;color:${q};font-family:${font};font-size:20px;line-height:1.35;">${esc(field.title)}</p>${btns}`
+    body = `<p style="margin:0 0 16px;color:${q};font-family:${font};font-size:20px;line-height:1.35;">${esc(plainLine(field.title))}</p>${btns}`
   } else {
     body = `<a href="${esc(url)}" target="_blank" style="display:inline-block;padding:12px 22px;border-radius:6px;background:${th.buttonColor};color:${th.buttonTextColor};font-family:${font};font-size:16px;font-weight:bold;text-decoration:none;">${esc(buttonText || 'Responder')}</a>`
   }

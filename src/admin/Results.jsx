@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { plainLine } from '../lib/rich'
 import { Link, useParams } from 'react-router-dom'
 import { supabase, publicFormUrl } from '../lib/supabase'
 import { answerableFields, formatAnswer, FIELD_TYPES, labelFor } from '../lib/fields'
@@ -194,7 +195,7 @@ function FieldSummary({ field, rows }) {
         <span className="ad-item-chip" style={{ background: d?.color }}>
           <Icon name={d?.glyph} size={13} stroke={2} />
         </span>
-        <h3>{field.title || 'Sem título'}</h3>
+        <h3>{plainLine(field.title) || 'Sem título'}</h3>
         <span className="ad-muted ad-sum-n">
           {n} de {rows.length} {rows.length === 1 ? 'respondeu' : 'responderam'}
         </span>
@@ -338,7 +339,7 @@ export default function Results() {
       { header: 'Tempo (segundos)', width: 10, get: (r) => (r.duration_ms == null ? null : Math.round(r.duration_ms / 1000)) },
     ]
     for (const f of fields) {
-      const title = f.title || f.id
+      const title = plainLine(f.title) || f.id
       if (f.type === 'short_text' && f.props?.selector?.enabled) {
         const opts = f.props.selector.options || []
         cols.push({ header: `${title} (tipo)`, width: 10, get: (r) => opts.find((o) => o.id === r.answers?.[f.id]?.option)?.label ?? null })
@@ -519,7 +520,7 @@ export default function Results() {
                       <th>Protocolo</th>
                       <th>Tempo</th>
                       {fields.map((f) => (
-                        <th key={f.id}>{f.title || 'Sem título'}</th>
+                        <th key={f.id}>{plainLine(f.title) || 'Sem título'}</th>
                       ))}
                     </tr>
                   </thead>
@@ -553,7 +554,7 @@ export default function Results() {
           <dl className="ad-detail">
             {fields.map((f) => (
               <div key={f.id}>
-                <dt>{f.title || 'Sem título'}</dt>
+                <dt>{plainLine(f.title) || 'Sem título'}</dt>
                 <dd>{f.type === 'signature' && open.answers?.[f.id] ? <img className="ad-sig" src={open.answers[f.id]} alt="Assinatura" /> : formatAnswer(open.answers?.[f.id], f) || <span className="ad-muted">Sem resposta</span>}</dd>
               </div>
             ))}

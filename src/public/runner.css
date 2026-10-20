@@ -311,3 +311,5 @@
 }
 .fr-protocol { margin: 18px 0 0; font-size: 16px; color: var(--q-60); }
 .fr-protocol b { color: var(--q); font-size: 20px; letter-spacing: .04em; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.fr-rich a, .fr-q-desc a, .fr-welcome-title a { color: var(--a); text-decoration: underline; text-underline-offset: 3px; }
+.fr-q-title b, .fr-q-desc b { font-weight: 700; }

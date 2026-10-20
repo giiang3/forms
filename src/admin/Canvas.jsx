@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { FormFrame, FieldInput } from '../public/Screens'
 import { estimateMinutes, flattenFields } from '../lib/fields'
-import { AutoText } from './ui'
+import { RichEditor, RichToolbar } from './RichEditor'
+import { richHtml, plainLine } from '../lib/rich'
 import Icon from '../Icon'
 
 function numberFor(schema, id) {
@@ -30,7 +31,7 @@ function RecallNote({ text, schema }) {
     <p className="ad-recall-note">
       {ids.map((id) => (
         <span key={id}>
-          <code>{`{{${id}}}`}</code> = resposta de “{byId[id]?.title || 'pergunta removida'}”
+          <code>{`{{${id}}}`}</code> = resposta de “{plainLine(byId[id]?.title) || 'pergunta removida'}”
         </span>
       ))}
     </p>
@@ -48,11 +49,11 @@ function EditableHead({ number, title, description, required, onTitle, onDescrip
           </span>
         )}
         <div className="ad-edit-title-wrap">
-          <AutoText className={`ad-edit ${big ? 'fr-welcome-title' : 'fr-q-title'}`} value={title} onChange={onTitle} placeholder="Escreva a pergunta" />
+          <RichEditor className={`ad-edit ${big ? 'fr-welcome-title' : 'fr-q-title'}`} value={title} onChange={onTitle} placeholder="Escreva a pergunta" />
           {required && <span className="ad-req" title="Obrigatória">obrigatória</span>}
         </div>
       </div>
-      <AutoText className="ad-edit fr-q-desc ad-edit-desc" value={description} onChange={onDescription} placeholder="Descrição (opcional)" />
+      <RichEditor className="ad-edit fr-q-desc ad-edit-desc" value={description} onChange={onDescription} placeholder="Descrição (opcional)" />
       <RecallNote text={`${title || ''} ${description || ''}`} schema={schema} />
     </>
   )
@@ -77,7 +78,7 @@ function FieldPreview({ field, isGroupChild, onPatch, schema }) {
 
   return (
     <div className="fr-q">
-      {isGroupChild && <p className="ad-in-group">Dentro do grupo “{isGroupChild.title || 'sem título'}”</p>}
+      {isGroupChild && <p className="ad-in-group">Dentro do grupo “{plainLine(isGroupChild.title) || 'sem título'}”</p>}
       <EditableHead
         schema={schema}
         number={isStatement ? null : numberFor(schema, field.id)}
@@ -99,7 +100,7 @@ function FieldPreview({ field, isGroupChild, onPatch, schema }) {
                   <span aria-hidden="true">→</span>
                 </span>
                 <h2 className="fr-q-title">
-                  {c.title || <span className="fr-muted">Sem título</span>}
+                  {c.title ? <span className="fr-rich" dangerouslySetInnerHTML={{ __html: richHtml(c.title) }} /> : <span className="fr-muted">Sem título</span>}
                   {c.required && ' *'}
                 </h2>
               </div>
@@ -133,8 +134,8 @@ export default function Canvas({ schema, selected, field, parent, ending, onPatc
       <div className={`fr-q fr-welcome ${w.enabled === false ? 'ad-dim' : ''}`}>
         {w.enabled === false && <p className="ad-in-group">Tela de boas-vindas desligada</p>}
         {w.image && <img className="fr-q-img fr-welcome-img" src={w.image} alt="" />}
-        <AutoText className="ad-edit fr-welcome-title" value={w.title} onChange={(v) => onWelcome({ title: v })} placeholder="Título da boas-vindas" />
-        <AutoText className="ad-edit fr-q-desc ad-edit-desc" value={w.description} onChange={(v) => onWelcome({ description: v })} placeholder="Descrição (opcional)" />
+        <RichEditor className="ad-edit fr-welcome-title" value={w.title} onChange={(v) => onWelcome({ title: v })} placeholder="Título da boas-vindas" />
+        <RichEditor className="ad-edit fr-q-desc ad-edit-desc" value={w.description} onChange={(v) => onWelcome({ description: v })} placeholder="Descrição (opcional)" />
         <div className="fr-actions">
           <span className="fr-btn fr-btn-lg">{w.buttonText || 'Começar'}</span>
         </div>
@@ -149,8 +150,8 @@ export default function Canvas({ schema, selected, field, parent, ending, onPatc
   } else if (selected?.kind === 'ending' && ending) {
     body = (
       <div className="fr-q fr-ending">
-        <AutoText className="ad-edit fr-welcome-title" value={ending.title} onChange={(v) => onEnding({ title: v })} placeholder="Título da tela final" />
-        <AutoText className="ad-edit fr-q-desc ad-edit-desc" value={ending.description} onChange={(v) => onEnding({ description: v })} placeholder="Descrição (opcional)" />
+        <RichEditor className="ad-edit fr-welcome-title" value={ending.title} onChange={(v) => onEnding({ title: v })} placeholder="Título da tela final" />
+        <RichEditor className="ad-edit fr-q-desc ad-edit-desc" value={ending.description} onChange={(v) => onEnding({ description: v })} placeholder="Descrição (opcional)" />
         <RecallNote text={`${ending.title || ''} ${ending.description || ''}`} schema={schema} />
         {ending.receipt?.enabled !== false && (
           <p className="fr-protocol">
@@ -180,6 +181,7 @@ export default function Canvas({ schema, selected, field, parent, ending, onPatc
 
   return (
     <div className={`ad-canvas ${device === 'mobile' ? 'is-mobile' : ''}`}>
+      <RichToolbar />
       <FormFrame theme={schema.theme} className="ad-frame">
         <div className="fr-stage ad-stage">
           <div className="fr-slide">{body}</div>

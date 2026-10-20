@@ -1,4 +1,5 @@
 import { flattenFields, NON_ANSWER_TYPES, uid } from '../lib/fields'
+import { plainLine } from '../lib/rich'
 import { OPS, opsFor, newRule } from '../lib/logic'
 import Icon from '../Icon'
 import LogicMap from './LogicMap'
@@ -52,14 +53,14 @@ function TargetSelect({ schema, selfId, value, onChange, emptyLabel }) {
           .filter((f) => f.id !== selfId)
           .map((f) => (
             <option key={f.id} value={f.id}>
-              {f.title || 'Sem título'}
+              {plainLine(f.title) || 'Sem título'}
             </option>
           ))}
       </optgroup>
       <optgroup label="Telas finais">
         {(schema.endings || []).map((e, i) => (
           <option key={e.id} value={`end:${e.id}`}>
-            {String.fromCharCode(65 + i)}. {e.title || 'Tela final'}
+            {String.fromCharCode(65 + i)}. {plainLine(e.title) || 'Tela final'}
           </option>
         ))}
       </optgroup>
@@ -103,7 +104,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
       {map}
     <div className="ad-logic">
       <div className="ad-logic-head">
-        <h2>Lógica de “{screen.title || 'Sem título'}”</h2>
+        <h2>Lógica de “{plainLine(screen.title) || 'Sem título'}”</h2>
         <p className="ad-muted">Depois desta tela, a pessoa vai para o destino da primeira regra que for verdadeira.</p>
       </div>
 
@@ -137,7 +138,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
                     <option value="">Escolha a pergunta…</option>
                     {condFields.map((cf) => (
                       <option key={cf.id} value={cf.id}>
-                        {cf.title || 'Sem título'}
+                        {plainLine(cf.title) || 'Sem título'}
                       </option>
                     ))}
                   </select>
@@ -186,7 +187,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
           <h3>Perguntas com lógica</h3>
           {withLogic.map((f) => (
             <button key={f.id} className={`ad-chip-btn ${f.id === screenId ? 'is-on' : ''}`} onClick={() => onSelect(f.id)}>
-              <Icon name="logic" size={14} /> {f.title || 'Sem título'}
+              <Icon name="logic" size={14} /> {plainLine(f.title) || 'Sem título'}
             </button>
           ))}
         </div>

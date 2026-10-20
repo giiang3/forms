@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import Icon from '../Icon'
 import { backgroundStyle, loadFont, resolveTheme, themeVars } from '../lib/themes'
-import { recall, estimateMinutes } from '../lib/fields'
+import { recall, recallHtml, estimateMinutes } from '../lib/fields'
+import { richHtml, plainLine } from '../lib/rich'
 import { googleCalendarUrl } from '../lib/calendar'
 import { downloadReceipt, receiptItems } from '../lib/receipt'
 import {
@@ -30,9 +31,9 @@ export function FieldInput({ field, value, onChange, onEnter, onAutoAdvance, aut
     case 'long_text':
       return <LongText {...common} />
     case 'email':
-      return <TextLine type="email" inputMode="email" value={value} onChange={onChange} onEnter={onEnter} autoFocus={autoFocus} placeholder={field.props?.placeholder} ariaLabel={field.title} />
+      return <TextLine type="email" inputMode="email" value={value} onChange={onChange} onEnter={onEnter} autoFocus={autoFocus} placeholder={field.props?.placeholder} ariaLabel={plainLine(field.title)} />
     case 'website':
-      return <TextLine type="url" inputMode="url" value={value} onChange={onChange} onEnter={onEnter} autoFocus={autoFocus} placeholder={field.props?.placeholder} ariaLabel={field.title} />
+      return <TextLine type="url" inputMode="url" value={value} onChange={onChange} onEnter={onEnter} autoFocus={autoFocus} placeholder={field.props?.placeholder} ariaLabel={plainLine(field.title)} />
     case 'phone':
       return <PhoneInput {...common} />
     case 'number':
@@ -69,7 +70,13 @@ export function FieldInput({ field, value, onChange, onEnter, onAutoAdvance, aut
   }
 }
 
-function Title({ number, text, required, small }) {
+/** Renders stored rich text (already sanitized) as HTML. */
+export function Rich({ as: Tag = 'span', html, className, fallback = null }) {
+  if (!html) return fallback
+  return <Tag className={className} dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+function Title({ number, html, required, small }) {
   return (
     <div className={`fr-q-head ${small ? 'is-small' : ''}`}>
       {number != null && (
@@ -79,7 +86,7 @@ function Title({ number, text, required, small }) {
         </span>
       )}
       <h2 className="fr-q-title">
-        {text || <span className="fr-muted">Sem título</span>}
+        {html ? <span className="fr-rich" dangerouslySetInnerHTML={{ __html: html }} /> : <span className="fr-muted">Sem título</span>}
         {required && <span aria-label="obrigatória"> *</span>}
       </h2>
     </div>
@@ -91,7 +98,7 @@ function Title({ number, text, required, small }) {
  * answers / setAnswer / errors are keyed by field id.
  */
 export function FieldScreen({ field, number, answers, setAnswer, errors = {}, onNext, onAutoAdvance, fieldsById, letters = true, active = true, busy, isLast }) {
-  const t = (s) => recall(s, answers, fieldsById)
+  const t = (s) => recallHtml(s, answers, fieldsById)
   const isGroup = field.type === 'group'
   const isStatement = field.type === 'statement'
   const err = errors[field.id]
@@ -99,16 +106,16 @@ export function FieldScreen({ field, number, answers, setAnswer, errors = {}, on
 
   return (
     <div className="fr-q">
-      <Title number={isStatement ? null : number} text={t(field.title)} required={field.required && !isGroup} />
-      {field.description && <p className="fr-q-desc">{t(field.description)}</p>}
+      <Title number={isStatement ? null : number} html={t(field.title)} required={field.required && !isGroup} />
+      <Rich as="p" className="fr-q-desc" html={t(field.description)} />
       {field.image && <img className="fr-q-img" src={field.image} alt="" />}
 
       {isGroup ? (
         <div className="fr-group">
           {(field.children || []).map((c, i) => (
             <div key={c.id} className="fr-group-item">
-              <Title number={`${number}${String.fromCharCode(97 + i)}`} text={t(c.title)} required={c.required && c.type !== 'statement'} small />
-              {c.description && <p className="fr-q-desc">{t(c.description)}</p>}
+              <Title number={`${number}${String.fromCharCode(97 + i)}`} html={t(c.title)} required={c.required && c.type !== 'statement'} small />
+              <Rich as="p" className="fr-q-desc" html={t(c.description)} />
               {c.image && <img className="fr-q-img" src={c.image} alt="" />}
               <FieldInput
                 field={c}
@@ -169,8 +176,8 @@ export function WelcomeScreen({ welcome, fields, count, onStart }) {
   return (
     <div className="fr-q fr-welcome">
       {welcome.image && <img className="fr-q-img fr-welcome-img" src={welcome.image} alt="" />}
-      <h1 className="fr-welcome-title">{welcome.title || 'Olá!'}</h1>
-      {welcome.description && <p className="fr-q-desc">{welcome.description}</p>}
+      <Rich as="h1" className="fr-welcome-title" html={richHtml(welcome.title) || 'Olá!'} />
+      <Rich as="p" className="fr-q-desc" html={richHtml(welcome.description)} />
       <div className="fr-actions">
         <button type="button" className="fr-btn fr-btn-lg" onClick={onStart} autoFocus>
           {welcome.buttonText || 'Começar'}
@@ -209,8 +216,8 @@ export function EndingScreen({ ending, answers, fieldsById, receipt, schema, for
     })
   return (
     <div className="fr-q fr-ending">
-      <h1 className="fr-welcome-title">{t(ending?.title) || 'Obrigado!'}</h1>
-      {ending?.description && <p className="fr-q-desc">{t(ending.description)}</p>}
+      <Rich as="h1" className="fr-welcome-title" html={recallHtml(ending?.title, answers || {}, fieldsById) || 'Obrigado!'} />
+      <Rich as="p" className="fr-q-desc" html={recallHtml(ending?.description, answers || {}, fieldsById)} />
       {showReceipt && (
         <p className="fr-protocol">
           Protocolo <b>{receipt.protocol}</b>

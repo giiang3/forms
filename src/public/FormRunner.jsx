@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { plainLine } from '../lib/rich'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { flattenFields, answerableFields } from '../lib/fields'
@@ -203,7 +204,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
           const opt = a && typeof a === 'object' ? f.props?.selector?.options?.find((o) => o.id === a.option) : null
           message = opt
             ? `Este ${opt.label} já foi usado para responder este formulário.`
-            : `Já recebemos uma resposta com este valor em “${f.title}”.`
+            : `Já recebemos uma resposta com este valor em “${plainLine(f.title)}”.`
         }
         setErrors((e) => ({ ...e, [res.fieldId]: message }))
         setDir('up')

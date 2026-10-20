@@ -1,4 +1,5 @@
 import { answerableFields, formatAnswer } from './fields'
+import { plainText } from './rich'
 
 /** Hide all digits except the last four, keeping punctuation: 529.982.247-25 -> ***.***.*47-25 */
 export function maskDocument(value) {
@@ -29,7 +30,7 @@ export function receiptItems(schema, answers) {
       const v = answers[f.id]
       return v != null && v !== '' && !(Array.isArray(v) && !v.length)
     })
-    .map((f) => ({ q: f.title || 'Pergunta', a: answerText(f, answers[f.id]) }))
+    .map((f) => ({ q: plainText(f.title) || 'Pergunta', a: answerText(f, answers[f.id]) }))
 }
 
 export async function downloadReceipt({ title, protocol, submittedAt, items, url }) {

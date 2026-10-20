@@ -1,3 +1,4 @@
+import { richHtml, escapeHtml } from './rich'
 // Field registry: one entry per field type the editor can add.
 
 export const uid = (prefix = '') =>
@@ -269,6 +270,16 @@ export function estimateMinutes(fields = []) {
 }
 
 /** Replace {{id}} with the answer to that field (for recall in titles). */
+/** Same as recall(), for rich titles/descriptions: returns safe HTML. */
+export function recallHtml(text, answers, fieldsById) {
+  const html = richHtml(text)
+  return html.replace(/\{\{([\w-]+)\}\}/g, (_, id) => {
+    const a = answers?.[id]
+    if (a == null) return '___'
+    return escapeHtml(formatAnswer(a, fieldsById?.[id]))
+  })
+}
+
 export function recall(text, answers, fieldsById) {
   if (!text) return text
   return text.replace(/\{\{([\w-]+)\}\}/g, (_, id) => {
