@@ -131,3 +131,60 @@ export const newRule = () => ({
   conditions: [{ id: uid('c'), field: '', op: 'is', value: '' }],
   to: '',
 })
+
+/* ------------------------------------------------------------------
+   Questions with several answers (checkboxes, multiple choice with "várias respostas"):
+   every rule that matches is followed, one page after the other, in rule order.
+   After the last one the form goes to "nos outros casos" (or past all those pages).
+------------------------------------------------------------------- */
+
+export function isMultiSelect(f) {
+  return !!f && (f.type === 'checkbox' || (['multiple_choice', 'picture_choice'].includes(f.type) && !!f.props?.multiple))
+}
+
+function toTarget(schema, t) {
+  if (!t) return null
+  if (t.startsWith('end:')) return { type: 'end', id: t.slice(4) }
+  return (schema.fields || []).some((f) => f.id === t) ? { type: 'field', id: t } : null
+}
+
+/** Where a multi-answer question continues after its pages. */
+export function fanOutAfter(schema, fieldId) {
+  const logic = schema.logic?.[fieldId]
+  if (logic?.otherwise && toTarget(schema, logic.otherwise)) return logic.otherwise
+  const fields = schema.fields || []
+  const idx = (logic?.rules || []).map((r) => fields.findIndex((f) => f.id === r.to)).filter((i) => i >= 0)
+  const from = idx.length ? Math.max(...idx) : fields.findIndex((f) => f.id === fieldId)
+  if (fields[from + 1]) return fields[from + 1].id
+  return schema.endings?.[0] ? `end:${schema.endings[0].id}` : null
+}
+
+/**
+ * Next screen plus the pages still waiting from a multi-answer question.
+ * queue: null | { items: [targetId...], after: targetId|null }
+ */
+export function step(schema, fieldId, answers, fieldsById, queue) {
+  const field = (schema.fields || []).find((f) => f.id === fieldId)
+  const logic = schema.logic?.[fieldId]
+  const end = { type: 'end', id: null }
+
+  if (isMultiSelect(field) && logic) {
+    const targets = [...new Set((logic.rules || []).filter((r) => r.to && evalRule(r, answers, fieldsById)).map((r) => r.to))].filter(
+      (t) => t !== fieldId && toTarget(schema, t),
+    )
+    if (targets.length) {
+      return { target: toTarget(schema, targets[0]), queue: { items: targets.slice(1), after: fanOutAfter(schema, fieldId) } }
+    }
+  }
+
+  if (queue) {
+    // A page's own explicit rule wins over the queue
+    const own = (logic?.rules || []).find((r) => r.to && evalRule(r, answers, fieldsById) && toTarget(schema, r.to))
+    if (own) return { target: toTarget(schema, own.to), queue: null }
+    if (logic?.otherwise && toTarget(schema, logic.otherwise)) return { target: toTarget(schema, logic.otherwise), queue: null }
+    if (queue.items.length) return { target: toTarget(schema, queue.items[0]), queue: { ...queue, items: queue.items.slice(1) } }
+    return { target: toTarget(schema, queue.after) || end, queue: null }
+  }
+
+  return { target: nextTarget(schema, fieldId, answers, fieldsById), queue: null }
+}

@@ -8,6 +8,7 @@ import FieldList from './FieldList'
 import Canvas from './Canvas'
 import AddFieldModal from './AddFieldModal'
 import LogicPanel from './LogicPanel'
+import LogicMap from './LogicMap'
 import DesignPanel from './DesignPanel'
 import SharePanel from './SharePanel'
 import { FieldSettings, WelcomeSettings, EndingSettings } from './FieldSettings'
@@ -265,14 +266,21 @@ export default function Editor() {
         )}
 
         {tab === 'logic' && (
-          <main className="ad-center-col ad-center-scroll">
-            <LogicPanel
-              schema={draft}
-              screenId={logicScreen}
-              onChange={(logic) => mutate((d) => ({ ...d, logic }))}
-              onSelect={(fid) => setSelected({ kind: 'field', id: fid })}
-            />
-          </main>
+          <>
+            <main className="ad-center-col">
+              <LogicMap schema={draft} selectedId={logicScreen} onSelect={(fid) => setSelected({ kind: 'field', id: fid })} />
+            </main>
+            <aside className="ad-right ad-right-logic">
+              <div className="ad-right-body">
+                <LogicPanel
+                  schema={draft}
+                  screenId={logicScreen}
+                  onChange={(logic) => mutate((d) => ({ ...d, logic }))}
+                  onSelect={(fid) => setSelected({ kind: 'field', id: fid })}
+                />
+              </div>
+            </aside>
+          </>
         )}
 
         {tab === 'share' && (

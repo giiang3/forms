@@ -1,8 +1,7 @@
 import { flattenFields, NON_ANSWER_TYPES, uid, screenLabel } from '../lib/fields'
 import { plainLine } from '../lib/rich'
-import { OPS, opsFor, newRule } from '../lib/logic'
+import { OPS, opsFor, newRule, isMultiSelect } from '../lib/logic'
 import Icon from '../Icon'
-import LogicMap from './LogicMap'
 
 const CHOICE = ['multiple_choice', 'dropdown', 'picture_choice', 'checkbox']
 
@@ -71,6 +70,8 @@ function TargetSelect({ schema, selfId, value, onChange, emptyLabel }) {
 export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
   const screen = schema.fields.find((f) => f.id === screenId)
   const logic = schema.logic?.[screenId] || { rules: [], otherwise: '' }
+  const multi = isMultiSelect(screen)
+  const fanFrom = (schema.fields || []).find((q) => isMultiSelect(q) && (schema.logic?.[q.id]?.rules || []).some((r) => r.to === screenId))
   const all = flattenFields(schema.fields)
   const idx = all.findIndex((f) => f.id === screenId)
   const end = screen?.type === 'group' ? idx + (screen.children?.length || 0) : idx
@@ -87,26 +88,28 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
     return l && (l.rules?.some((r) => r.to) || l.otherwise)
   })
 
-  const map = <LogicMap schema={schema} selectedId={screenId} onSelect={onSelect} />
-
   if (!screen)
     return (
-      <div className="ad-logic-wrap">
-        {map}
-        <div className="ad-logic">
-          <p className="ad-note">Clique numa pergunta no mapa ou na lista à esquerda para criar ou mudar as regras dela.</p>
-        </div>
+      <div className="ad-logic">
+        <p className="ad-note">Clique numa página no mapa ou na lista à esquerda para criar ou mudar as regras dela.</p>
       </div>
     )
 
   return (
-    <div className="ad-logic-wrap">
-      {map}
     <div className="ad-logic">
       <div className="ad-logic-head">
         <h2>Lógica de “{screenLabel(screen) || 'Sem título'}”</h2>
-        <p className="ad-muted">Depois desta tela, a pessoa vai para o destino da primeira regra que for verdadeira.</p>
+        <p className="ad-muted">
+          {multi
+            ? 'Esta pergunta aceita várias respostas: a pessoa passa pelas páginas de todas as opções marcadas, uma depois da outra, na ordem das regras. Depois da última, vai para o destino de “nos outros casos”.'
+            : 'Depois desta tela, a pessoa vai para o destino da primeira regra que for verdadeira.'}
+        </p>
       </div>
+      {fanFrom && !logic.rules.length && (
+        <p className="ad-note">
+          Esta página é uma das opções de “{screenLabel(fanFrom) || 'Sem título'}”. Depois dela, o formulário segue para a próxima opção marcada e, no fim, para “nos outros casos” daquela pergunta. Só crie regras aqui se quiser mudar esse caminho.
+        </p>
+      )}
 
       {condFields.length === 0 ? (
         <p className="ad-note">Ainda não há perguntas com resposta até esta tela. Você pode definir só o destino padrão.</p>
@@ -178,7 +181,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
       <div className="ad-rule ad-rule-default">
         <div className="ad-cond ad-cond-to">
           <span className="ad-cond-word">{logic.rules.length ? 'Nos outros casos, ir para' : 'Sempre ir para'}</span>
-          <TargetSelect schema={schema} selfId={screenId} value={logic.otherwise} onChange={(v) => set({ ...logic, otherwise: v })} emptyLabel="Próxima pergunta (padrão)" />
+          <TargetSelect schema={schema} selfId={screenId} value={logic.otherwise} onChange={(v) => set({ ...logic, otherwise: v })} emptyLabel={fanFrom ? 'Próxima opção marcada (padrão)' : 'Próxima pergunta (padrão)'} />
         </div>
       </div>
 
@@ -192,7 +195,6 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
           ))}
         </div>
       )}
-    </div>
     </div>
   )
 }

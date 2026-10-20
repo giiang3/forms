@@ -3,7 +3,7 @@ import { plainLine } from '../lib/rich'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { flattenFields, answerableFields } from '../lib/fields'
-import { nextTarget } from '../lib/logic'
+import { nextTarget, step } from '../lib/logic'
 import { validateField, autoAdvances } from '../lib/answers'
 import { domainError } from '../lib/validation'
 import { FormFrame, FieldScreen, WelcomeScreen, EndingScreen } from './Screens'
@@ -135,6 +135,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
     welcomeOn && !hasPrefill ? { type: 'welcome' } : fields[0] ? { type: 'field', id: fields[0].id } : { type: 'end', id: null },
   )
   const [history, setHistory] = useState([])
+  const [queue, setQueue] = useState(null) // pages still to visit from a multi-answer question
   const [answers, setAnswers] = useState(() => ({ ...(prefill || {}) }))
   const [errors, setErrors] = useState({})
   const [dir, setDir] = useState('down')
@@ -182,9 +183,10 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
     return { ok: true, receipt: { protocol: data?.protocol, submittedAt: data?.submitted_at } }
   }
 
-  const go = (target, from) => {
+  const go = (target, from, nextQueue = null) => {
     setDir('down')
-    if (from) setHistory((h) => [...h, from])
+    if (from) setHistory((h) => [...h, { screen: from, queue }])
+    setQueue(nextQueue)
     setScreen(target)
   }
 
@@ -208,6 +210,12 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
         }
         setErrors((e) => ({ ...e, [res.fieldId]: message }))
         setDir('up')
+        // Rewind history to that page so the path (and pending pages) stays consistent
+        const idx = history.findIndex((h) => h.screen.type === 'field' && h.screen.id === owner)
+        if (idx >= 0) {
+          setQueue(history[idx].queue)
+          setHistory((h) => h.slice(0, idx))
+        }
         setScreen({ type: 'field', id: owner })
       } else setSubmitError(res.message)
       return
@@ -242,7 +250,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
       return
     }
 
-    const target = nextTarget(schema, current.id, answers, fieldsById)
+    const { target, queue: nextQueue } = step(schema, current.id, answers, fieldsById, queue)
     if (target.type === 'end') return finish(target.id)
 
     // Partial submit points save silently and move on
@@ -251,18 +259,20 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
       setBusy(true)
       await send(true)
       setBusy(false)
-      const after = nextTarget(schema, nf.id, answers, fieldsById)
-      setHistory((h) => [...h, screen])
+      const { target: after, queue: afterQueue } = step(schema, nf.id, answers, fieldsById, nextQueue)
+      setHistory((h) => [...h, { screen, queue }])
       if (after.type === 'end') return finish(after.id)
-      return go({ type: 'field', id: after.id })
+      return go({ type: 'field', id: after.id }, null, afterQueue)
     }
-    go(target, screen)
+    go(target, screen, nextQueue)
   }
 
   const back = () => {
     if (!history.length) return
     setDir('up')
-    setScreen(history[history.length - 1])
+    const prev = history[history.length - 1]
+    setScreen(prev.screen)
+    setQueue(prev.queue)
     setHistory((h) => h.slice(0, -1))
   }
 
@@ -319,7 +329,7 @@ export function Runner({ schema, slug, count = 0, preview = false, onExit, prefi
               fieldsById={fieldsById}
               letters={schema.settings?.letters !== false}
               busy={busy}
-              isLast={nextTarget(schema, current.id, answers, fieldsById).type === 'end'}
+              isLast={step(schema, current.id, answers, fieldsById, queue).target.type === 'end'}
             />
           )}
           {screen.type === 'end' && <EndingScreen ending={ending} answers={answers} fieldsById={fieldsById} receipt={receipt} schema={schema} formTitle={formTitle} preview={preview} />}
