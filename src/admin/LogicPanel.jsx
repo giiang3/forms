@@ -1,4 +1,4 @@
-import { flattenFields, NON_ANSWER_TYPES, uid } from '../lib/fields'
+import { flattenFields, NON_ANSWER_TYPES, uid, screenLabel } from '../lib/fields'
 import { plainLine } from '../lib/rich'
 import { OPS, opsFor, newRule } from '../lib/logic'
 import Icon from '../Icon'
@@ -53,7 +53,7 @@ function TargetSelect({ schema, selfId, value, onChange, emptyLabel }) {
           .filter((f) => f.id !== selfId)
           .map((f) => (
             <option key={f.id} value={f.id}>
-              {plainLine(f.title) || 'Sem título'}
+              {screenLabel(f) || 'Sem título'}
             </option>
           ))}
       </optgroup>
@@ -104,7 +104,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
       {map}
     <div className="ad-logic">
       <div className="ad-logic-head">
-        <h2>Lógica de “{plainLine(screen.title) || 'Sem título'}”</h2>
+        <h2>Lógica de “{screenLabel(screen) || 'Sem título'}”</h2>
         <p className="ad-muted">Depois desta tela, a pessoa vai para o destino da primeira regra que for verdadeira.</p>
       </div>
 
@@ -187,7 +187,7 @@ export default function LogicPanel({ schema, screenId, onChange, onSelect }) {
           <h3>Perguntas com lógica</h3>
           {withLogic.map((f) => (
             <button key={f.id} className={`ad-chip-btn ${f.id === screenId ? 'is-on' : ''}`} onClick={() => onSelect(f.id)}>
-              <Icon name="logic" size={14} /> {plainLine(f.title) || 'Sem título'}
+              <Icon name="logic" size={14} /> {screenLabel(f) || 'Sem título'}
             </button>
           ))}
         </div>

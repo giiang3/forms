@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { plainLine } from '../lib/rich'
-import { FIELD_TYPES, flattenFields } from '../lib/fields'
+import { FIELD_TYPES, flattenFields, screenLabel } from '../lib/fields'
 import { OPS } from '../lib/logic'
 import Icon from '../Icon'
 
@@ -47,7 +47,7 @@ export function buildGraph(schema) {
   for (const f of fields) {
     const counted = f.type !== 'statement' && f.type !== 'partial_submit'
     if (counted) num += 1
-    nodes.push({ id: f.id, kind: 'field', field: f, title: plainLine(f.title) || 'Sem título', num: counted ? num : null })
+    nodes.push({ id: f.id, kind: 'field', field: f, title: screenLabel(f) || 'Sem título', num: counted ? num : null })
   }
   endings.forEach((e, i) => nodes.push({ id: `end:${e.id}`, kind: 'end', title: plainLine(e.title) || 'Tela final', letter: String.fromCharCode(65 + i) }))
   const valid = new Set(nodes.map((n) => n.id))

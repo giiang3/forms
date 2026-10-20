@@ -269,6 +269,7 @@
 
 /* Group */
 .fr-group { display: grid; gap: 36px; margin-top: 32px; }
+.fr-q > .fr-group:first-child { margin-top: 0; }
 .fr-group-item .fr-line, .fr-group-item .fr-sel-btn { font-size: 22px; }
 .fr-group-item > :is(.fr-line, .fr-sel-row, .fr-dd, .fr-choices, .fr-date, .fr-subs, .fr-scale, .fr-rating, .fr-pics, .fr-rank, .fr-matrix-wrap, .fr-sign) { margin-top: 16px; }
 .fr-group-item .fr-choice { font-size: 17px; }

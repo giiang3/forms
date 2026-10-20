@@ -1,4 +1,4 @@
-import { richHtml, escapeHtml } from './rich'
+import { richHtml, escapeHtml, plainLine } from './rich'
 // Field registry: one entry per field type the editor can add.
 
 export const uid = (prefix = '') =>
@@ -175,7 +175,7 @@ export const FIELD_TYPES = {
   },
   group: {
     label: 'Grupo de perguntas', category: 'other', color: '#E2D3F2', glyph: 'group',
-    defaults: () => ({ title: 'Grupo de perguntas', props: { buttonText: 'Continuar' }, children: [] }),
+    defaults: () => ({ title: '', props: { buttonText: 'Continuar' }, children: [] }),
   },
   partial_submit: {
     label: 'Ponto de envio parcial', category: 'other', color: '#E2D3F2', glyph: 'flag',
@@ -320,4 +320,16 @@ export function labelFor(field, idOrText) {
   if (typeof idOrText === 'string' && idOrText.startsWith('other:')) return idOrText.slice(6)
   const o = field?.props?.options?.find((x) => x.id === idOrText)
   return o ? o.label : String(idOrText)
+}
+
+/** Label for a screen in lists and selects. Untitled groups show their questions. */
+export function screenLabel(f) {
+  if (!f) return ''
+  const t = plainLine(f.title)
+  if (t) return t
+  if (f.type === 'group') {
+    const kids = (f.children || []).map((c) => plainLine(c.title)).filter(Boolean)
+    return kids.length ? kids.join(' + ') : 'Página vazia'
+  }
+  return ''
 }

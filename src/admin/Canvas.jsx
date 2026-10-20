@@ -38,7 +38,7 @@ function RecallNote({ text, schema }) {
   )
 }
 
-function EditableHead({ number, title, description, required, onTitle, onDescription, big, schema }) {
+function EditableHead({ number, title, description, required, onTitle, onDescription, big, schema, placeholder }) {
   return (
     <>
       <div className="fr-q-head">
@@ -49,7 +49,7 @@ function EditableHead({ number, title, description, required, onTitle, onDescrip
           </span>
         )}
         <div className="ad-edit-title-wrap">
-          <RichEditor className={`ad-edit ${big ? 'fr-welcome-title' : 'fr-q-title'}`} value={title} onChange={onTitle} placeholder="Escreva a pergunta" />
+          <RichEditor className={`ad-edit ${big ? 'fr-welcome-title' : 'fr-q-title'}`} value={title} onChange={onTitle} placeholder={placeholder || 'Escreva a pergunta'} />
           {required && <span className="ad-req" title="Obrigatória">obrigatória</span>}
         </div>
       </div>
@@ -78,20 +78,21 @@ function FieldPreview({ field, isGroupChild, onPatch, schema }) {
 
   return (
     <div className="fr-q">
-      {isGroupChild && <p className="ad-in-group">Dentro do grupo “{plainLine(isGroupChild.title) || 'sem título'}”</p>}
+      {isGroupChild && <p className="ad-in-group">Nesta página também: {isGroupChild.children.filter((c) => c.id !== field.id).map((c) => plainLine(c.title) || 'sem título').join(', ') || 'nenhuma outra pergunta'}</p>}
       <EditableHead
         schema={schema}
         number={isStatement ? null : numberFor(schema, field.id)}
         title={field.title}
         description={field.description}
         required={field.required && !isGroup}
+        placeholder={isGroup ? 'Título da página (opcional)' : undefined}
         onTitle={(v) => onPatch({ title: v })}
         onDescription={(v) => onPatch({ description: v })}
       />
       {field.image && <img className="fr-q-img" src={field.image} alt="" />}
       {isGroup ? (
         <div className="fr-group">
-          {(field.children || []).length === 0 && <p className="fr-hint">Este grupo está vazio. Adicione perguntas a ele.</p>}
+          {(field.children || []).length === 0 && <p className="fr-hint">Esta página está vazia. Use “Adicionar nesta página” na lista.</p>}
           {(field.children || []).map((c, i) => (
             <div key={c.id} className="fr-group-item">
               <div className="fr-q-head is-small">

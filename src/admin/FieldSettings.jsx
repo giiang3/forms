@@ -1,4 +1,4 @@
-import { FIELD_TYPES, NON_ANSWER_TYPES, answerableFields } from '../lib/fields'
+import { FIELD_TYPES, NON_ANSWER_TYPES, answerableFields, screenLabel } from '../lib/fields'
 import { plainLine } from '../lib/rich'
 import { VALIDATIONS } from '../lib/validation'
 import { googleCalendarUrl } from '../lib/calendar'
@@ -6,7 +6,7 @@ import Icon from '../Icon'
 import { Toggle, Row, TextInput, TextArea, Select, Section, OptionsEditor } from './ui'
 
 const typeOptions = Object.entries(FIELD_TYPES)
-  .filter(([t]) => t !== 'partial_submit')
+  .filter(([t]) => t !== 'partial_submit' && t !== 'group')
   .map(([value, d]) => ({ value, label: d.label }))
 
 const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
@@ -52,9 +52,11 @@ export function FieldSettings({ schema, field, parent, onPatch, onProps, onChang
   return (
     <div className="ad-right-body">
       <Section title="Pergunta">
-        <Row label="Tipo">
-          <Select value={field.type} onChange={onChangeType} options={typeOptions} />
-        </Row>
+        {field.type !== 'group' && (
+          <Row label="Tipo">
+            <Select value={field.type} onChange={onChangeType} options={typeOptions} />
+          </Row>
+        )}
         {!NON_ANSWER_TYPES.has(field.type) && <Toggle label="Obrigatória" checked={field.required} onChange={(v) => onPatch({ required: v })} />}
         <RecallPicker fields={schema.fields} currentId={field.id} onPick={(tok) => onPatch({ title: `${field.title || ''} ${tok}`.trim() })} />
       </Section>
@@ -68,12 +70,12 @@ export function FieldSettings({ schema, field, parent, onPatch, onProps, onChang
       </Section>
 
       {canGroup && groups.length > 0 && (
-        <Section title="Organização" defaultOpen={!!parent}>
-          <Row label="Grupo de perguntas">
+        <Section title="Página" defaultOpen={!!parent}>
+          <Row label="Mostrar na mesma página que">
             <Select
               value={parent?.id || ''}
               onChange={(v) => onMoveToGroup(v || null)}
-              options={[{ value: '', label: 'Fora de grupo' }, ...groups.map((g) => ({ value: g.id, label: plainLine(g.title) || 'Grupo sem título' }))]}
+              options={[{ value: '', label: 'Página própria' }, ...groups.map((g) => ({ value: g.id, label: screenLabel(g) }))]}
             />
           </Row>
         </Section>
@@ -369,7 +371,7 @@ function TypeSettings({ field, p, onProps }) {
           <Row label="Texto do botão">
             <TextInput value={p.buttonText} onChange={(v) => onProps({ buttonText: v })} />
           </Row>
-          {field.type === 'group' && <p className="ad-note">As perguntas deste grupo aparecem juntas na mesma tela. Use “Adicionar pergunta” com o grupo selecionado.</p>}
+          {field.type === 'group' && <p className="ad-note">As perguntas desta página aparecem juntas na mesma tela. Para incluir mais, use “Adicionar nesta página” na lista ou arraste uma pergunta para cima de outra. Para separar, arraste a pergunta para fora.</p>}
         </Section>
       )
     default:

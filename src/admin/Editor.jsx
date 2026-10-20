@@ -12,7 +12,8 @@ import DesignPanel from './DesignPanel'
 import SharePanel from './SharePanel'
 import { FieldSettings, WelcomeSettings, EndingSettings } from './FieldSettings'
 import { Runner } from '../public/FormRunner'
-import { useToast } from './ui'
+import { useToast, Modal } from './ui'
+import { screenLabel } from '../lib/fields'
 import * as D from './draft'
 
 const TABS = [
@@ -37,6 +38,7 @@ export default function Editor() {
   const [selected, setSelected] = useState({ kind: 'welcome' })
   const [tab, setTab] = useState('content')
   const [adding, setAdding] = useState(false)
+  const [confirm, setConfirm] = useState(null)
   const [preview, setPreview] = useState(false)
   const [device, setDevice] = useState('desktop')
   const [save, setSave] = useState('saved')
@@ -112,11 +114,28 @@ export default function Editor() {
 
   const { field, parent } = selected.kind === 'field' ? D.findField(draft, selected.id) : { field: null, parent: null }
   const ending = selected.kind === 'ending' ? draft.endings.find((e) => e.id === selected.id) : null
-  const groupForAdd = field?.type === 'group' ? field : parent
   const logicScreen = parent ? parent.id : field?.id
 
-  const onAddPick = (type, intoGroup) => {
-    const res = D.addField(draft, type, intoGroup && groupForAdd ? { groupId: groupForAdd.id } : { afterId: selected.kind === 'field' ? selected.id : undefined })
+  // Apply a planned change; if it deletes logic rules, ask first
+  const applyPlan = (plan, selectId) => {
+    if (!plan) return
+    const go = () => {
+      setDraft(plan.schema)
+      if (selectId) setSelected({ kind: 'field', id: selectId })
+      setConfirm(null)
+    }
+    if (plan.lost?.length) setConfirm({ lost: plan.lost, go })
+    else go()
+  }
+
+  const onAddPick = (type) => {
+    if (adding?.anchor) {
+      const plan = D.planAddToPage(draft, type, adding.anchor)
+      setAdding(false)
+      if (plan) applyPlan(plan, plan.id)
+      return
+    }
+    const res = D.addField(draft, type, { afterId: selected.kind === 'field' ? selected.id : undefined })
     setDraft(res.schema)
     setSelected({ kind: 'field', id: res.id })
     setAdding(false)
@@ -159,7 +178,7 @@ export default function Editor() {
           const fallback = parent ? parent.id : list[i + 1]?.id || list[i - 1]?.id
           setSelected(fallback ? { kind: 'field', id: fallback } : { kind: 'welcome' })
         }}
-        onMoveToGroup={(gid) => mutate((d) => D.moveToGroup(d, field.id, gid))}
+        onMoveToGroup={(gid) => applyPlan(gid ? D.planMove(draft, field.id, gid, 'merge') : D.planMove(draft, field.id, parent?.id, 'after'), field.id)}
       />
     )
 
@@ -203,13 +222,14 @@ export default function Editor() {
             schema={draft}
             selected={selected}
             onSelect={(s) => setSelected(s)}
-            onAdd={() => setAdding(true)}
+            onAdd={() => setAdding({})}
+            onAddToPage={(anchor) => setAdding({ anchor })}
+            onMove={(dragId, targetId, zone) => applyPlan(D.planMove(draft, dragId, targetId, zone), dragId)}
             onAddEnding={() => {
               const r = D.addEnding(draft)
               setDraft(r.schema)
               setSelected({ kind: 'ending', id: r.id })
             }}
-            onReorder={(from, to) => mutate((d) => D.moveTop(d, from, to))}
           />
         )}
 
@@ -226,7 +246,7 @@ export default function Editor() {
               </div>
               {field && parent && (
                 <button className="ad-btn ad-btn-sm ad-btn-quiet" onClick={() => setSelected({ kind: 'field', id: parent.id })}>
-                  Ver grupo inteiro
+                  Ver página inteira
                 </button>
               )}
             </div>
@@ -264,7 +284,24 @@ export default function Editor() {
         {showCanvas && <aside className="ad-right">{right}</aside>}
       </div>
 
-      {adding && <AddFieldModal onClose={() => setAdding(false)} onPick={onAddPick} groupName={groupForAdd ? plainLine(groupForAdd.title) || 'Grupo' : null} />}
+      {adding && <AddFieldModal onClose={() => setAdding(false)} onPick={onAddPick} toPage={!!adding.anchor} />}
+      {confirm && (
+        <Modal title="Juntar na mesma página" onClose={() => setConfirm(null)}>
+          <p>
+            {confirm.lost.length === 1 ? 'Esta pergunta tem regras de lógica:' : 'Estas perguntas têm regras de lógica:'}{' '}
+            <b>{confirm.lost.map((f) => screenLabel(f) || 'Sem título').join(', ')}</b>.
+          </p>
+          <p>A lógica fica na página. Ao juntar, essas regras serão apagadas e você cria as regras da nova página na aba Lógica. Regras de outras perguntas que levavam até aqui passam a levar para a nova página.</p>
+          <div className="ad-modal-actions">
+            <button className="ad-btn" onClick={() => setConfirm(null)}>
+              Cancelar
+            </button>
+            <button className="ad-btn ad-btn-danger" onClick={confirm.go}>
+              Juntar e apagar as regras
+            </button>
+          </div>
+        </Modal>
+      )}
       {preview && (
         <div className="ad-preview">
           <Runner schema={draft} preview onExit={() => setPreview(false)} />

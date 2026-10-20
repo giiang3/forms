@@ -106,7 +106,7 @@ export function FieldScreen({ field, number, answers, setAnswer, errors = {}, on
 
   return (
     <div className="fr-q">
-      <Title number={isStatement ? null : number} html={t(field.title)} required={field.required && !isGroup} />
+      {!(isGroup && !t(field.title)) && <Title number={isStatement ? null : number} html={t(field.title)} required={field.required && !isGroup} />}
       <Rich as="p" className="fr-q-desc" html={t(field.description)} />
       {field.image && <img className="fr-q-img" src={field.image} alt="" />}
 

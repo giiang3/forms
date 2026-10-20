@@ -1,8 +1,7 @@
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { useRef, useState } from 'react'
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core'
+import { FIELD_TYPES, screenLabel } from '../lib/fields'
 import { plainLine } from '../lib/rich'
-import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { FIELD_TYPES } from '../lib/fields'
 import Icon from '../Icon'
 
 function numbering(fields) {
@@ -17,36 +16,104 @@ function numbering(fields) {
   return map
 }
 
-function Item({ field, num, selected, onSelect, hasLogic, child, sortable }) {
+const CANT_GROUP = new Set(['group', 'partial_submit'])
+
+function Chip({ field, num }) {
   const d = FIELD_TYPES[field.type]
-  const s = useSortable({ id: field.id, disabled: !sortable })
-  const style = sortable ? { transform: CSS.Transform.toString(s.transform), transition: s.transition } : undefined
   return (
-    <div ref={sortable ? s.setNodeRef : undefined} style={style} className={`ad-item ${child ? 'is-child' : ''} ${selected ? 'is-on' : ''} ${s.isDragging ? 'is-drag' : ''}`}>
-      <button type="button" className="ad-item-btn" onClick={onSelect} {...(sortable ? s.attributes : {})} {...(sortable ? s.listeners : {})}>
-        <span className="ad-item-chip" style={{ background: d?.color }}>
-          <Icon name={d?.glyph} size={13} stroke={2} />
-          {num && <b>{num}</b>}
-        </span>
-        <span className="ad-item-title">{plainLine(field.title) || <i>Sem título</i>}</span>
+    <span className="ad-item-chip" style={{ background: d?.color }}>
+      <Icon name={d?.glyph} size={13} stroke={2} />
+      {num && <b>{num}</b>}
+    </span>
+  )
+}
+
+function Item({ field, num, selected, onSelect, hasLogic, child, drop, dragging }) {
+  const drag = useDraggable({ id: field.id })
+  const dropZone = useDroppable({ id: field.id })
+  const label = field.type === 'group' ? screenLabel(field) : plainLine(field.title)
+  const zone = drop?.id === field.id ? drop.zone : null
+  return (
+    <div
+      ref={(n) => {
+        drag.setNodeRef(n)
+        dropZone.setNodeRef(n)
+      }}
+      className={`ad-item ${child ? 'is-child' : ''} ${field.type === 'group' ? 'is-page' : ''} ${selected ? 'is-on' : ''} ${dragging ? 'is-ghost' : ''} ${zone ? `is-drop-${zone}` : ''}`}
+    >
+      <button type="button" className="ad-item-btn" onClick={onSelect} {...drag.attributes} {...drag.listeners}>
+        <Chip field={field} num={num} />
+        <span className={`ad-item-title ${field.type === 'group' && !plainLine(field.title) ? 'is-auto' : ''}`}>{label || <i>Sem título</i>}</span>
         {hasLogic && (
           <span className="ad-item-logic" title="Tem lógica">
             <Icon name="logic" size={14} />
           </span>
         )}
       </button>
+      {zone === 'merge' && <span className="ad-drop-hint">Juntar na mesma página</span>}
     </div>
   )
 }
 
-export default function FieldList({ schema, selected, onSelect, onAdd, onAddEnding, onReorder }) {
+export default function FieldList({ schema, selected, onSelect, onAdd, onAddToPage, onAddEnding, onMove }) {
   const nums = numbering(schema.fields)
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  )
+  // Touch needs a short press before dragging, so the list still scrolls
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }))
+  const [activeId, setActiveId] = useState(null)
+  const [drop, setDrop] = useState(null)
+  const startY = useRef(0)
+
   const isSel = (kind, id) => selected?.kind === kind && selected?.id === id
   const logicIds = new Set(Object.entries(schema.logic || {}).filter(([, v]) => v.rules?.some((r) => r.to) || v.otherwise).map(([k]) => k))
+  const all = []
+  for (const f of schema.fields) {
+    all.push(f)
+    if (f.type === 'group') all.push(...(f.children || []))
+  }
+  const byId = Object.fromEntries(all.map((f) => [f.id, f]))
+  const parentOf = (id) => schema.fields.find((g) => g.type === 'group' && g.children?.some((c) => c.id === id))
+
+  // Where "add to this page" shows: under the selected page (or the page of the selected question)
+  const selField = selected?.kind === 'field' ? byId[selected.id] : null
+  const selPage = selField ? parentOf(selField.id) || selField : null
+  const canAddHere = selPage && selPage.type !== 'partial_submit'
+
+  const zoneFor = (over, y, dragField) => {
+    const r = over.rect
+    const rel = (y - r.top) / r.height
+    const target = byId[over.id]
+    const canMerge = dragField && !CANT_GROUP.has(dragField.type) && target && target.type !== 'partial_submit' && parentOf(over.id)?.id !== dragField.id
+    if (canMerge && rel > 0.28 && rel < 0.72) return 'merge'
+    return rel < 0.5 ? 'before' : 'after'
+  }
+
+  const onDragMove = ({ active, over, delta }) => {
+    if (!over || over.id === active.id) return setDrop(null)
+    const y = startY.current + delta.y
+    setDrop({ id: over.id, zone: zoneFor(over, y, byId[active.id]) })
+  }
+
+  const renderItem = (f, child) => (
+    <Item
+      key={f.id}
+      field={f}
+      num={nums[f.id]}
+      child={child}
+      selected={isSel('field', f.id)}
+      onSelect={() => onSelect({ kind: 'field', id: f.id })}
+      hasLogic={!child && logicIds.has(f.id)}
+      drop={drop}
+      dragging={activeId === f.id}
+    />
+  )
+
+  const addHereBtn = (page) =>
+    canAddHere &&
+    selPage.id === page.id && (
+      <button type="button" className="ad-add-here" onClick={() => onAddToPage(selField.id)}>
+        <Icon name="plus" size={14} /> Adicionar nesta página
+      </button>
+    )
 
   return (
     <aside className="ad-left">
@@ -63,29 +130,46 @@ export default function FieldList({ schema, selected, onSelect, onAdd, onAddEndi
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={({ active, over }) => {
-            if (!over || active.id === over.id) return
-            const from = schema.fields.findIndex((f) => f.id === active.id)
-            const to = schema.fields.findIndex((f) => f.id === over.id)
-            if (from >= 0 && to >= 0) onReorder(from, to)
+          collisionDetection={pointerWithin}
+          onDragStart={({ active, activatorEvent }) => {
+            setActiveId(active.id)
+            startY.current = activatorEvent?.touches?.[0]?.clientY ?? activatorEvent?.clientY ?? 0
+          }}
+          onDragMove={onDragMove}
+          onDragCancel={() => {
+            setActiveId(null)
+            setDrop(null)
+          }}
+          onDragEnd={({ active }) => {
+            const d = drop
+            setActiveId(null)
+            setDrop(null)
+            if (d && d.id !== active.id) onMove(active.id, d.id, d.zone)
           }}
         >
-          <SortableContext items={schema.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-            {schema.fields.map((f) => (
-              <div key={f.id} className="ad-item-group">
-                <Item field={f} num={nums[f.id]} selected={isSel('field', f.id)} onSelect={() => onSelect({ kind: 'field', id: f.id })} hasLogic={logicIds.has(f.id)} sortable />
-                {f.type === 'group' &&
-                  (f.children || []).map((c) => (
-                    <Item key={c.id} field={c} num={nums[c.id]} child selected={isSel('field', c.id)} onSelect={() => onSelect({ kind: 'field', id: c.id })} />
-                  ))}
+          {schema.fields.map((f) => (
+            <div key={f.id} className={`ad-item-group ${f.type === 'group' ? 'is-page' : ''}`}>
+              {renderItem(f, false)}
+              {f.type === 'group' && (f.children || []).map((c) => renderItem(c, true))}
+              {addHereBtn(f)}
+            </div>
+          ))}
+          <DragOverlay dropAnimation={null}>
+            {activeId && byId[activeId] ? (
+              <div className="ad-item ad-item-overlay">
+                <span className="ad-item-btn">
+                  <Chip field={byId[activeId]} num={nums[activeId]} />
+                  <span className="ad-item-title">{screenLabel(byId[activeId]) || 'Sem título'}</span>
+                </span>
               </div>
-            ))}
-          </SortableContext>
+            ) : null}
+          </DragOverlay>
         </DndContext>
 
+        <p className="ad-left-tip">Arraste uma pergunta sobre outra para juntar as duas na mesma página.</p>
+
         <button type="button" className="ad-add-btn" onClick={onAdd}>
-          <Icon name="plus" size={16} /> Adicionar pergunta
+          <Icon name="plus" size={16} /> Nova página
         </button>
 
         <h3 className="ad-left-h ad-left-h-row">
